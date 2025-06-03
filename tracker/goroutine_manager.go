@@ -8,12 +8,12 @@ import (
 // NewGoroutineManager creates a new goroutine statistics manager
 func NewGoroutineManager() *GoroutineManager {
 	return &GoroutineManager{
-		Stats: make(map[int]*GoroutineStats),
+		Stats: make(map[GoroutineId]*GoroutineStats),
 	}
 }
 
 // TrackGoroutineStart records the start of a goroutine tracking
-func (gm *GoroutineManager) TrackGoroutineStart() int {
+func (gm *GoroutineManager) TrackGoroutineStart() GoroutineId {
 	gm.mu.Lock()
 	defer gm.mu.Unlock()
 
@@ -66,14 +66,14 @@ func (gm *GoroutineManager) TrackSelectCase(caseName string, duration time.Durat
 }
 
 // GetGoroutineStats returns statistics for a specific goroutine
-func (gm *GoroutineManager) GetGoroutineStats(id int) *GoroutineStats {
+func (gm *GoroutineManager) GetGoroutineStats(id GoroutineId) *GoroutineStats {
 	gm.mu.RLock()
 	defer gm.mu.RUnlock()
 	return gm.Stats[id]
 }
 
 // GetAllStats returns statistics for all goroutines
-func (gm *GoroutineManager) GetAllStats() map[int]*GoroutineStats {
+func (gm *GoroutineManager) GetAllStats() map[GoroutineId]*GoroutineStats {
 	gm.mu.RLock()
 	defer gm.mu.RUnlock()
 	return maps.Clone(gm.Stats)

@@ -6,14 +6,15 @@ import (
 )
 
 // GoroutineManager manages statistics for multiple goroutines
+type GoroutineId int
 type GoroutineManager struct {
-	Stats map[int]*GoroutineStats
+	Stats map[GoroutineId]*GoroutineStats
 	mu    sync.RWMutex // protect concurrent access to stats
 }
 
 // GoroutineStats holds statistics for a single goroutine
 type GoroutineStats struct {
-	GoroutineId int
+	GoroutineId GoroutineId
 	SelectStats map[string]*SelectStats
 	StartTime   time.Time
 	EndTime     time.Time
