@@ -144,25 +144,7 @@ func (p *Pipeline) GetPipelineStats() map[tracker.GoroutineId]*tracker.Goroutine
 
 // PrintPipelineStats prints a summary of the pipeline performance
 func (p *Pipeline) PrintPipelineStats() {
-	stats := p.GetPipelineStats()
-	log.Println("\nPipeline Performance Statistics:")
-	log.Println("===============================")
-
-	for goroutineID, stat := range stats {
-		log.Printf("\nGoroutine %d:", goroutineID)
-		log.Printf("  Lifetime: %v", stat.GetGoroutineLifetime())
-		log.Printf("  Total Select Time: %v", stat.GetTotalSelectTime())
-
-		log.Println("  Select Case Statistics:")
-		for caseName, caseStats := range stat.GetSelectStats() {
-			log.Printf("    %s:", caseName)
-			log.Printf("      Hits: %d", caseStats.GetCaseHits())
-			log.Printf("      Total Time: %v", caseStats.GetCaseTime())
-			if caseStats.GetCaseHits() > 0 {
-				log.Printf("      Average Time: %v", caseStats.GetCaseTime()/time.Duration(caseStats.GetCaseHits()))
-			}
-		}
-	}
+	tracker.PrintStats(p.GetPipelineStats(), "Pipeline Performance Statistics")
 }
 
 // generateData produces random data for our pipeline

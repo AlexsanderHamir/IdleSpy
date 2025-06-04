@@ -135,8 +135,8 @@ func (w *Worker) processBatchPath(ctx context.Context, item WorkItem, output cha
 		startTime := time.Now()
 		select {
 		case <-timeout:
-			collecting = false
 			w.stats.TrackSelectCase("batch_timeout", time.Since(startTime))
+			collecting = false
 		case <-ctx.Done():
 			w.stats.TrackSelectCase("batch_context_done", time.Since(startTime))
 			return
@@ -316,21 +316,5 @@ func RunSelectsExample() {
 	log.Printf("Total processed items: %d", processedCount)
 
 	// Print statistics
-	log.Println("\nWorker Performance Statistics:")
-	log.Println("============================")
-	for goroutineID, stat := range stats.GetAllStats() {
-		log.Printf("\nGoroutine %d:", goroutineID)
-		log.Printf("  Lifetime: %v", stat.GetGoroutineLifetime())
-		log.Printf("  Total Select Time: %v", stat.GetTotalSelectTime())
-
-		log.Println("  Select Case Statistics:")
-		for caseName, caseStats := range stat.GetSelectStats() {
-			log.Printf("    %s:", caseName)
-			log.Printf("      Hits: %d", caseStats.GetCaseHits())
-			log.Printf("      Total Time: %v", caseStats.GetCaseTime())
-			if caseStats.GetCaseHits() > 0 {
-				log.Printf("      Average Time: %v", caseStats.GetCaseTime()/time.Duration(caseStats.GetCaseHits()))
-			}
-		}
-	}
+	tracker.PrintStats(stats.GetAllStats(), "Worker Performance Statistics")
 }
