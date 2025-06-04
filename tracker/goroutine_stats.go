@@ -1,8 +1,11 @@
 package tracker
 
 import (
+	"fmt"
+	"io"
 	"log"
 	"maps"
+	"os"
 	"strings"
 	"time"
 )
@@ -35,24 +38,39 @@ func (gs *GoroutineStats) GetSelectStats() map[string]*SelectStats {
 }
 
 // PrintStats prints a summary of goroutine performance statistics
-func PrintStats(stats map[GoroutineId]*GoroutineStats, title string) {
-	log.Println("\n" + title)
-	log.Println(strings.Repeat("=", len(title)))
+func PrintAndSaveStats(stats map[GoroutineId]*GoroutineStats, title string) {
+	// Create output directory if it doesn't exist
+	os.MkdirAll("visualization/output", 0755)
+
+	// Open file for writing
+	file, err := os.Create("visualization/output/stats.txt")
+	if err != nil {
+		log.Printf("Error creating stats file: %v", err)
+		return
+	}
+	defer file.Close()
+
+	// Create a multi-writer to write to both file and stdout
+	writer := io.MultiWriter(os.Stdout, file)
+
+	// Write title
+	fmt.Fprintln(writer, "\n"+title)
+	fmt.Fprintln(writer, strings.Repeat("=", len(title)))
 
 	for goroutineID, stat := range stats {
-		log.Printf("\nGoroutine %d:", goroutineID)
-		log.Printf("  Lifetime: %v", stat.GetGoroutineLifetime())
-		log.Printf("  Total Select Blocked Time: %v", stat.GetTotalSelectTime())
+		fmt.Fprintf(writer, "\nGoroutine %d:\n", goroutineID)
+		fmt.Fprintf(writer, "  Lifetime: %v\n", stat.GetGoroutineLifetime())
+		fmt.Fprintf(writer, "  Total Select Blocked Time: %v\n", stat.GetTotalSelectTime())
 
-		log.Println("  Select Case Statistics:")
+		fmt.Fprintln(writer, "  Select Case Statistics:")
 		for caseName, caseStats := range stat.GetSelectStats() {
-			log.Printf("    %s:", caseName)
-			log.Printf("      Hits: %d", caseStats.GetCaseHits())
-			log.Printf("      Total Blocked Time: %v", caseStats.GetCaseTime())
+			fmt.Fprintf(writer, "    %s:\n", caseName)
+			fmt.Fprintf(writer, "      Hits: %d\n", caseStats.GetCaseHits())
+			fmt.Fprintf(writer, "      Total Blocked Time: %v\n", caseStats.GetCaseTime())
 			if caseStats.GetCaseHits() > 0 {
-				log.Printf("      Average Blocked Time: %v", caseStats.GetCaseTime()/time.Duration(caseStats.GetCaseHits()))
-				log.Printf("      90th Percentile Blocked Time: %v", caseStats.GetPercentile(90))
-				log.Printf("      99th Percentile Blocked Time: %v", caseStats.GetPercentile(99))
+				fmt.Fprintf(writer, "      Average Blocked Time: %v\n", caseStats.GetCaseTime()/time.Duration(caseStats.GetCaseHits()))
+				fmt.Fprintf(writer, "      90th Percentile Blocked Time: %v\n", caseStats.GetPercentile(90))
+				fmt.Fprintf(writer, "      99th Percentile Blocked Time: %v\n", caseStats.GetPercentile(99))
 			}
 		}
 	}

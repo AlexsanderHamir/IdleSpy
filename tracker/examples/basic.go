@@ -144,7 +144,7 @@ func (p *Pipeline) GetPipelineStats() map[tracker.GoroutineId]*tracker.Goroutine
 
 // PrintPipelineStats prints a summary of the pipeline performance
 func (p *Pipeline) PrintPipelineStats() {
-	tracker.PrintStats(p.GetPipelineStats(), "Pipeline Performance Statistics")
+	tracker.PrintAndSaveStats(p.GetPipelineStats(), "Pipeline Performance Statistics")
 }
 
 // generateData produces random data for our pipeline

@@ -316,5 +316,5 @@ func RunSelectsExample() {
 	log.Printf("Total processed items: %d", processedCount)
 
 	// Print statistics
-	tracker.PrintStats(stats.GetAllStats(), "Worker Performance Statistics")
+	tracker.PrintAndSaveStats(stats.GetAllStats(), "Worker Performance Statistics")
 }
