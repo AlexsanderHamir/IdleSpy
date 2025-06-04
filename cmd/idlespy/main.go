@@ -8,10 +8,27 @@ import (
 	"github.com/AlexsanderHamir/IdleSpy/visualization"
 )
 
+const chartDescriptions = `
+Available chart types:
+  line      - Shows the efficiency score for each goroutine, ratio of the lifetime of the goroutine and the time it was blocked
+  bar-total - Displays the total response time for each select across all goroutines
+  bar-avg   - Shows the average response time for each select across all goroutines
+  bar-p90   - Displays the 90th percentile response time for each select across all goroutines
+  bar-p99   - Shows the 99th percentile response time for each select across all goroutines
+  bar-hits  - Visualizes the total number of requests for each select across all goroutines
+`
+
 func main() {
 	// Define command line flags
 	statsFile := flag.String("file", "", "Path to the stats file to visualize")
-	chartType := flag.String("chart", "line", "Type of chart to generate (line, bar-total, bar-avg, bar-p90, bar-p99, bar-hits)")
+	chartType := flag.String("chart", "line", "Type of chart to generate (see descriptions below)")
+
+	// Custom usage function to include chart descriptions
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
+		flag.PrintDefaults()
+		fmt.Fprint(os.Stderr, chartDescriptions)
+	}
 
 	flag.Parse()
 
@@ -37,7 +54,7 @@ func main() {
 		err = visualization.GenerateBarChart(*statsFile, visualization.TotalHits)
 	default:
 		fmt.Printf("Error: unknown chart type '%s'\n", *chartType)
-		fmt.Println("Available types: line, bar-total, bar-avg, bar-p90, bar-p99, bar-hits")
+		fmt.Print(chartDescriptions)
 		os.Exit(1)
 	}
 
