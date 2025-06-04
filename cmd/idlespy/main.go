@@ -10,7 +10,7 @@ import (
 
 const chartDescriptions = `
 Available chart types:
-  line      - Shows the efficiency score for each goroutine, ratio of the lifetime of the goroutine and the time it was blocked
+  score      - Shows the efficiency score for each goroutine, ratio of the lifetime of the goroutine and the time it was blocked
   bar-total - Displays the total response time for each select across all goroutines
   bar-avg   - Shows the average response time for each select across all goroutines
   bar-p90   - Displays the 90th percentile response time for each select across all goroutines
@@ -21,7 +21,7 @@ Available chart types:
 func main() {
 	// Define command line flags
 	statsFile := flag.String("file", "", "Path to the stats file to visualize")
-	chartType := flag.String("chart", "line", "Type of chart to generate (see descriptions below)")
+	chartType := flag.String("chart", "score", "Type of chart to generate (see descriptions below)")
 
 	// Custom usage function to include chart descriptions
 	flag.Usage = func() {
