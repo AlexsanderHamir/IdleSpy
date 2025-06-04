@@ -1,4 +1,4 @@
-**IdleSpy: Visual Concurrency Profiler for Go**
+## IdleSpy: Visual Concurrency Profiler for Go
 
 IdleSpy is a Go library and CLI tool for analyzing goroutines in high-concurrency applications. It shows where time is spent inside select statements and how often each path is blocked, helping you quickly identify inefficiencies and improve concurrency performance.
 
