@@ -10,7 +10,7 @@ import (
 
 const chartDescriptions = `
 Available chart types:
-  score      - Shows the efficiency score for each goroutine, ratio of the lifetime of the goroutine and the time it was blocked
+  score     - Shows the efficiency score for each goroutine, ratio of the lifetime of the goroutine and the time it was blocked
   bar-total - Displays the total response time for each select across all goroutines
   bar-avg   - Shows the average response time for each select across all goroutines
   bar-p90   - Displays the 90th percentile response time for each select across all goroutines
