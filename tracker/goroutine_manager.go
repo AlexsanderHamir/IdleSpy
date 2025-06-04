@@ -61,8 +61,7 @@ func (gm *GoroutineManager) TrackSelectCase(caseName string, duration time.Durat
 		stats.SelectStats[caseName] = selectStats
 	}
 
-	selectStats.CaseHits++
-	selectStats.CaseTime += duration
+	selectStats.AddLatency(duration)
 }
 
 // GetGoroutineStats returns statistics for a specific goroutine

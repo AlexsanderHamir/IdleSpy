@@ -9,5 +9,5 @@ func (ss *SelectStats) GetCaseHits() int {
 
 // GetCaseTime returns the total time spent in this case
 func (ss *SelectStats) GetCaseTime() time.Duration {
-	return ss.CaseTime
+	return ss.BlockedCaseTime
 }
