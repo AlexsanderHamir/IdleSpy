@@ -10,12 +10,12 @@ import (
 
 const chartDescriptions = `
 Available chart types:
-  score     		 - Shows the efficiency score for each goroutine, ratio of the lifetime of the goroutine and the time it was blocked
+  score				 - Shows the efficiency score for each goroutine, ratio of the lifetime of the goroutine and the time it was blocked
   total-blocked-time - Displays the total blocked time for each select across all goroutines
   avg-blocked-time   - Shows the average blocked time for each select across all goroutines
   p90-blocked-time   - Displays the 90th percentile blocked time for each select across all goroutines
   p99-blocked-time   - Shows the 99th percentile blocked time for each select across all goroutines
-  hits  		 	 - Visualizes the total number of hits for each select across all goroutines
+  hits				 - Visualizes the total number of hits for each select across all goroutines
 `
 
 func main() {
