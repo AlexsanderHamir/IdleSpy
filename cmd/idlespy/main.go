@@ -10,12 +10,12 @@ import (
 
 const chartDescriptions = `
 Available chart types:
-  score     - Shows the efficiency score for each goroutine, ratio of the lifetime of the goroutine and the time it was blocked
-  bar-total - Displays the total response time for each select across all goroutines
-  bar-avg   - Shows the average response time for each select across all goroutines
-  bar-p90   - Displays the 90th percentile response time for each select across all goroutines
-  bar-p99   - Shows the 99th percentile response time for each select across all goroutines
-  bar-hits  - Visualizes the total number of requests for each select across all goroutines
+  score     		 - Shows the efficiency score for each goroutine, ratio of the lifetime of the goroutine and the time it was blocked
+  total-blocked-time - Displays the total blocked time for each select across all goroutines
+  avg-blocked-time   - Shows the average blocked time for each select across all goroutines
+  p90-blocked-time   - Displays the 90th percentile blocked time for each select across all goroutines
+  p99-blocked-time   - Shows the 99th percentile blocked time for each select across all goroutines
+  hits  		 	 - Visualizes the total number of hits for each select across all goroutines
 `
 
 func main() {
@@ -42,15 +42,15 @@ func main() {
 	switch *chartType {
 	case "score":
 		err = visualization.GenerateLineGraph(*statsFile)
-	case "bar-total":
+	case "total-blocked-time":
 		err = visualization.GenerateBarChart(*statsFile, visualization.TotalTime)
-	case "bar-avg":
+	case "avg-blocked-time":
 		err = visualization.GenerateBarChart(*statsFile, visualization.AverageTime)
-	case "bar-p90":
+	case "p90-blocked-time":
 		err = visualization.GenerateBarChart(*statsFile, visualization.Percentile90)
-	case "bar-p99":
+	case "p99-blocked-time":
 		err = visualization.GenerateBarChart(*statsFile, visualization.Percentile99)
-	case "bar-hits":
+	case "hits":
 		err = visualization.GenerateBarChart(*statsFile, visualization.TotalHits)
 	default:
 		fmt.Printf("Error: unknown chart type '%s'\n", *chartType)
