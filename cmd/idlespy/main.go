@@ -40,7 +40,7 @@ func main() {
 
 	var err error
 	switch *chartType {
-	case "line":
+	case "score":
 		err = visualization.GenerateLineGraph(*statsFile)
 	case "bar-total":
 		err = visualization.GenerateBarChart(*statsFile, visualization.TotalTime)
