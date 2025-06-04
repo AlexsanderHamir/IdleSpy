@@ -39,11 +39,8 @@ func (gs *GoroutineStats) GetSelectStats() map[string]*SelectStats {
 
 // PrintStats prints a summary of goroutine performance statistics
 func PrintAndSaveStats(stats map[GoroutineId]*GoroutineStats, title string) {
-	// Create output directory if it doesn't exist
-	os.MkdirAll("visualization/output", 0755)
-
 	// Open file for writing
-	file, err := os.Create("visualization/output/stats.txt")
+	file, err := os.Create("stats.txt")
 	if err != nil {
 		log.Printf("Error creating stats file: %v", err)
 		return
