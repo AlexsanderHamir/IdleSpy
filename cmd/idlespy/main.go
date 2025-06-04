@@ -11,7 +11,7 @@ import (
 func main() {
 	// Define command line flags
 	statsFile := flag.String("file", "", "Path to the stats file to visualize")
-	visType := flag.String("type", "line", "Type of visualization (line, bar-total, bar-avg, bar-p90, bar-p99, bar-hits)")
+	chartType := flag.String("chart", "line", "Type of chart to generate (line, bar-total, bar-avg, bar-p90, bar-p99, bar-hits)")
 
 	flag.Parse()
 
@@ -22,7 +22,7 @@ func main() {
 	}
 
 	var err error
-	switch *visType {
+	switch *chartType {
 	case "line":
 		err = visualization.GenerateLineGraph(*statsFile)
 	case "bar-total":
@@ -36,7 +36,7 @@ func main() {
 	case "bar-hits":
 		err = visualization.GenerateBarChart(*statsFile, visualization.TotalHits)
 	default:
-		fmt.Printf("Error: unknown visualization type '%s'\n", *visType)
+		fmt.Printf("Error: unknown chart type '%s'\n", *chartType)
 		fmt.Println("Available types: line, bar-total, bar-avg, bar-p90, bar-p99, bar-hits")
 		os.Exit(1)
 	}

@@ -50,16 +50,21 @@ type CaseStats struct {
 
 // GenerateBarChart reads stats from a file and generates a bar chart visualization
 func GenerateBarChart(statsFile string, visType VisualizationType) error {
+	fmt.Println("Generating bar chart for", statsFile, "with type", visType)
 	file, err := os.Open(statsFile)
 	if err != nil {
 		return fmt.Errorf("error opening file: %w", err)
 	}
 	defer file.Close()
 
+	fmt.Println("Parsing stats from file")
+
 	stats, err := parseStats(file)
 	if err != nil {
 		return fmt.Errorf("error parsing stats: %w", err)
 	}
+
+	fmt.Println("Stats parsed", stats)
 
 	printBarChart(stats, visType)
 	return nil
@@ -166,13 +171,22 @@ func parseStats(file *os.File) ([]CaseStats, error) {
 	scanner := bufio.NewScanner(file)
 
 	// Regex patterns for parsing
-	casePattern := regexp.MustCompile(`Case: (.+)`)
-	blockedTimePattern := regexp.MustCompile(`Blocked for: ([\d.]+)([a-zµ]+)`)
+	casePattern := regexp.MustCompile(`^\s+([a-z_]+):$`)
+	blockedTimePattern := regexp.MustCompile(`Total Blocked Time: ([\d.]+)([a-zµ]+)`)
 
 	var currentCase *CaseStats
 
 	for scanner.Scan() {
 		line := scanner.Text()
+
+		// Skip goroutine headers and other non-case lines
+		if strings.HasPrefix(line, "Goroutine") ||
+			strings.HasPrefix(line, "Worker Performance Statistics") ||
+			strings.HasPrefix(line, "Lifetime:") ||
+			strings.HasPrefix(line, "Total Select Blocked Time:") ||
+			strings.HasPrefix(line, "Select Case Statistics:") {
+			continue
+		}
 
 		if matches := casePattern.FindStringSubmatch(line); matches != nil {
 			caseName := matches[1]
