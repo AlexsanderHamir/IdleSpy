@@ -27,7 +27,7 @@ IdleSpy's CLI can generate insightful graphs like:
 
 > Note: Use these charts to identify bottlenecks, uncover starvation issues, and fine-tune your system's concurrency design.
 
-#### Graph Example
+#### Graph Example (`score`)
 
 ![Score Graph Example](score_graph_example.png)
 
