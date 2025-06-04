@@ -50,21 +50,16 @@ type CaseStats struct {
 
 // GenerateBarChart reads stats from a file and generates a bar chart visualization
 func GenerateBarChart(statsFile string, visType VisualizationType) error {
-	fmt.Println("Generating bar chart for", statsFile, "with type", visType)
 	file, err := os.Open(statsFile)
 	if err != nil {
 		return fmt.Errorf("error opening file: %w", err)
 	}
 	defer file.Close()
 
-	fmt.Println("Parsing stats from file")
-
 	stats, err := parseStats(file)
 	if err != nil {
 		return fmt.Errorf("error parsing stats: %w", err)
 	}
-
-	fmt.Println("Stats parsed", stats)
 
 	printBarChart(stats, visType)
 	return nil
