@@ -113,7 +113,7 @@ Use the CLI tool to generate visualizations of your tracking data:
 idlespy -file ./stats.txt -chart score
 
 # View blocking time distribution across select cases
-idlespy -file ./stats.txt total-blocked-time
+idlespy -file ./stats.txt -chart total-blocked-time
 ```
 
 > Note: Run `idlespy -help` for more.
