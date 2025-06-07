@@ -1,4 +1,11 @@
 ## IdleSpy: Visual Concurrency Profiler for Go
+[![Go Version](https://img.shields.io/badge/Go-1.24%2B-blue)](https://golang.org)
+[![Go Report Card](https://goreportcard.com/badge/github.com/AlexsanderHamir/IdleSpy)](https://goreportcard.com/report/github.com/AlexsanderHamir/IdleSpy)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+![Issues](https://img.shields.io/github/issues/AlexsanderHamir/IdleSpy)
+![Last Commit](https://img.shields.io/github/last-commit/AlexsanderHamir/IdleSpy)
+![Code Size](https://img.shields.io/github/languages/code-size/AlexsanderHamir/IdleSpy)
+
 
 IdleSpy is a Go library and CLI tool for analyzing goroutines in high-concurrency applications. It shows where time is spent inside select statements and how often each path is blocked, helping you quickly identify inefficiencies and improve concurrency performance.
 
@@ -34,7 +41,7 @@ IdleSpy's CLI can generate insightful graphs like:
 
 > Note: Use these charts to identify bottlenecks, uncover starvation issues, and fine-tune your system's concurrency design.
 
-#### Graph Example
+#### Graph Example (`score`)
 
 ![Score Graph Example](score_graph_example.png)
 
