@@ -40,7 +40,7 @@ func TestTrackGoroutineStartAndEnd(t *testing.T) {
 	}
 
 	// Test end tracking
-	gm.TrackGoroutineEnd()
+	gm.TrackGoroutineEnd(id)
 	stats = gm.GetGoroutineStats(id)
 	if stats.EndTime.IsZero() {
 		t.Error("End time was not set after TrackGoroutineEnd")
@@ -60,7 +60,7 @@ func TestTrackSelectCase(t *testing.T) {
 	// Test tracking a select case
 	caseName := "test_case"
 	duration := 100 * time.Millisecond
-	gm.TrackSelectCase(caseName, duration)
+	gm.TrackSelectCase(caseName, duration, id)
 
 	// Verify select stats
 	stats := gm.GetGoroutineStats(id)
@@ -77,7 +77,7 @@ func TestTrackSelectCase(t *testing.T) {
 	}
 
 	// Test multiple hits
-	gm.TrackSelectCase(caseName, duration)
+	gm.TrackSelectCase(caseName, duration, id)
 	selectStats = stats.GetSelectCaseStats(caseName)
 	if selectStats.GetCaseHits() != 2 {
 		t.Errorf("Expected 2 case hits, got %d", selectStats.GetCaseHits())
@@ -98,11 +98,11 @@ func TestConcurrentTracking(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			id := gm.TrackGoroutineStart()
-			defer gm.TrackGoroutineEnd()
+			defer gm.TrackGoroutineEnd(id)
 
 			// Track some select cases
-			gm.TrackSelectCase("case1", 50*time.Millisecond)
-			gm.TrackSelectCase("case2", 100*time.Millisecond)
+			gm.TrackSelectCase("case1", 50*time.Millisecond, id)
+			gm.TrackSelectCase("case2", 100*time.Millisecond, id)
 
 			// Verify stats are accessible
 			stats := gm.GetGoroutineStats(id)
@@ -160,15 +160,15 @@ func TestGetAllStats(t *testing.T) {
 
 	// Track a few goroutines
 	id1 := gm.TrackGoroutineStart()
-	gm.TrackSelectCase("case1", 100*time.Millisecond)
+	gm.TrackSelectCase("case1", 100*time.Millisecond, id1)
 
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		gm.TrackGoroutineStart()
-		gm.TrackSelectCase("case2", 200*time.Millisecond)
-		gm.TrackGoroutineEnd()
+		id := gm.TrackGoroutineStart()
+		gm.TrackSelectCase("case2", 200*time.Millisecond, id)
+		gm.TrackGoroutineEnd(id)
 	}()
 	wg.Wait()
 

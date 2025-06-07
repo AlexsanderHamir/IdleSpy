@@ -10,7 +10,7 @@ import (
 type GoroutineId int
 type GoroutineManager struct {
 	Stats map[GoroutineId]*GoroutineStats
-	mu    sync.RWMutex // protect concurrent access to stats
+	mu    sync.RWMutex
 }
 
 // GoroutineStats holds statistics for a single goroutine
@@ -29,7 +29,7 @@ type SelectStats struct {
 	CaseHits int
 	// individual latencies for percentile calculations
 	latencies []time.Duration
-	mu        sync.Mutex // protect concurrent access to latencies
+	mu        sync.Mutex
 }
 
 // AddLatency adds a new latency measurement to the stats
@@ -50,14 +50,11 @@ func (s *SelectStats) GetPercentile(n float64) time.Duration {
 		return 0
 	}
 
-	// Create a copy of latencies to sort
 	latencies := make([]time.Duration, len(s.latencies))
 	copy(latencies, s.latencies)
 
-	// Sort latencies
 	slices.Sort(latencies)
 
-	// Calculate index for nth percentile
 	index := int(float64(len(latencies)-1) * n / 100.0)
 	return latencies[index]
 }

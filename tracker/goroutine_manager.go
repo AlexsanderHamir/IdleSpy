@@ -29,22 +29,17 @@ func (gm *GoroutineManager) TrackGoroutineStart() GoroutineId {
 }
 
 // TrackGoroutineEnd records the end of a goroutine
-func (gm *GoroutineManager) TrackGoroutineEnd() {
+func (gm *GoroutineManager) TrackGoroutineEnd(id GoroutineId) {
 	gm.mu.Lock()
 	defer gm.mu.Unlock()
 
-	id := getGoroutineID()
 	if stats, exists := gm.Stats[id]; exists {
 		stats.EndTime = time.Now()
 	}
 }
 
 // TrackSelectCase records statistics for a select case
-func (gm *GoroutineManager) TrackSelectCase(caseName string, duration time.Duration) {
-	gm.mu.Lock()
-	defer gm.mu.Unlock()
-
-	id := getGoroutineID()
+func (gm *GoroutineManager) TrackSelectCase(caseName string, duration time.Duration, id GoroutineId) {
 	stats, exists := gm.Stats[id]
 	if !exists {
 		stats = &GoroutineStats{
