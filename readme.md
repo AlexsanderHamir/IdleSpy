@@ -13,7 +13,6 @@ IdleSpy is a Go library and CLI tool for analyzing goroutines in high-concurrenc
 
 - [What IdleSpy Tracks](#-what-idlespy-tracks)
 - [CLI-Generated Charts](#-cli-generated-charts)
-  - [Graph Example](#graph-example)
 - [Installation](#installation)
 - [Tracker Usage](#tracker-usage)
   - [Basic Usage](#basic-usage)
