@@ -40,6 +40,9 @@ func (gm *GoroutineManager) TrackGoroutineEnd(id GoroutineId) {
 
 // TrackSelectCase records statistics for a select case
 func (gm *GoroutineManager) TrackSelectCase(caseName string, duration time.Duration, id GoroutineId) {
+	gm.mu.Lock()
+	defer gm.mu.Unlock()
+
 	stats, exists := gm.Stats[id]
 	if !exists {
 		stats = &GoroutineStats{

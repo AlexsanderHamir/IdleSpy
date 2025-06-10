@@ -34,8 +34,6 @@ type SelectStats struct {
 
 // AddLatency adds a new latency measurement to the stats
 func (s *SelectStats) AddLatency(latency time.Duration) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
 	s.latencies = append(s.latencies, latency)
 	s.BlockedCaseTime += latency
 	s.CaseHits++
