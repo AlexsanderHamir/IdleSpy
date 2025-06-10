@@ -13,7 +13,6 @@ IdleSpy is a Go library and CLI tool for analyzing goroutines in high-concurrenc
 
 - [What IdleSpy Tracks](#-what-idlespy-tracks)
 - [CLI-Generated Charts](#-cli-generated-charts)
-  - [Graph Example](#graph-example)
 - [Installation](#installation)
 - [Tracker Usage](#tracker-usage)
   - [Basic Usage](#basic-usage)
@@ -113,36 +112,29 @@ Use the CLI tool to generate visualizations of your tracking data:
 idlespy -file ./stats.txt -chart score
 
 # View blocking time distribution across select cases
-idlespy -file ./stats.txt total-blocked-time
+idlespy -file ./stats.txt -chart total-blocked-time
 ```
 
 > Note: Run `idlespy -help` for more.
 
-### Understanding the Statistics
 
-The tracker will generate the following statistics and save it on the stats.txt file:
+### 📊 Understanding the Statistics
 
-Goroutine 35:
-Lifetime: 19.88s
-Total Select Blocked Time: 2.36s
+The tracker will generate detailed runtime statistics and save them to a `stats.txt` file. Below is an example of the data format:
 
-Select Case Statistics:
-slow_path_output:
-Hits: 51
-Total Blocked Time: 2.36s
-Average Blocked Time: 46.34ms
-90th Percentile: 88.35ms
-99th Percentile: 93.23ms
 
-batch_timeout:
-Hits: 58
-Total Blocked Time: 274.84µs
-Average Blocked Time: 4.74µs
-90th Percentile: 8.17µs
-99th Percentile: 12.83µs
+#### 🧵 Goroutine 35
 
-Goroutine 100:
-.....
+* **Lifetime:** `19.88s`
+* **Total Select Blocked Time:** `2.36s`
+
+**Select Case Statistics:**
+
+| Case Name          | Hits | Total Blocked Time | Avg Blocked Time | 90th %ile | 99th %ile |
+| ------------------ | ---- | ------------------ | ---------------- | --------- | --------- |
+| `slow_path_output` | 51   | 2.36s              | 46.34ms          | 88.35ms   | 93.23ms   |
+| `batch_timeout`    | 58   | 274.84µs           | 4.74µs           | 8.17µs    | 12.83µs   |
+
 
 ### Best Practices
 
