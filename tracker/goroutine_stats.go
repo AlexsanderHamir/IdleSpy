@@ -40,7 +40,7 @@ func (gs *GoroutineStats) GetSelectStats() map[string]*SelectStats {
 // PrintStats prints a summary of goroutine performance statistics
 func PrintAndSaveStats(stats map[GoroutineId]*GoroutineStats, title string) {
 	// Open file for writing
-	file, err := os.Create("stats.txt")
+	file, err := os.Create(fmt.Sprintf("%s.txt", title))
 	if err != nil {
 		log.Printf("Error creating stats file: %v", err)
 		return
@@ -71,4 +71,36 @@ func PrintAndSaveStats(stats map[GoroutineId]*GoroutineStats, title string) {
 			}
 		}
 	}
+}
+
+// SaveStats saves goroutine performance statistics to a file without printing to stdout
+func SaveStats(stats map[GoroutineId]*GoroutineStats, title string) error {
+	file, err := os.Create(fmt.Sprintf("%s.txt", title))
+	if err != nil {
+		return fmt.Errorf("error creating stats file: %w", err)
+	}
+	defer file.Close()
+
+	fmt.Fprintln(file, "\n"+title)
+	fmt.Fprintln(file, strings.Repeat("=", len(title)))
+
+	for goroutineID, stat := range stats {
+		fmt.Fprintf(file, "\nGoroutine %d:\n", goroutineID)
+		fmt.Fprintf(file, "  Lifetime: %v\n", stat.GetGoroutineLifetime())
+		fmt.Fprintf(file, "  Total Select Blocked Time: %v\n", stat.GetTotalSelectTime())
+
+		fmt.Fprintln(file, "  Select Case Statistics:")
+		for caseName, caseStats := range stat.GetSelectStats() {
+			fmt.Fprintf(file, "    %s:\n", caseName)
+			fmt.Fprintf(file, "      Hits: %d\n", caseStats.GetCaseHits())
+			fmt.Fprintf(file, "      Total Blocked Time: %v\n", caseStats.GetCaseTime())
+			if caseStats.GetCaseHits() > 0 {
+				fmt.Fprintf(file, "      Average Blocked Time: %v\n", caseStats.GetCaseTime()/time.Duration(caseStats.GetCaseHits()))
+				fmt.Fprintf(file, "      90th Percentile Blocked Time: %v\n", caseStats.GetPercentile(90))
+				fmt.Fprintf(file, "      99th Percentile Blocked Time: %v\n", caseStats.GetPercentile(99))
+			}
+		}
+	}
+
+	return nil
 }
