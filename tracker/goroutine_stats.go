@@ -6,6 +6,7 @@ import (
 	"log"
 	"maps"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -73,9 +74,17 @@ func PrintAndSaveStats(stats map[GoroutineId]*GoroutineStats, title string) {
 	}
 }
 
-// SaveStats saves goroutine performance statistics to a file without printing to stdout
+// SaveStats saves goroutine performance statistics to a file in a directory named after the stage
 func SaveStats(stats map[GoroutineId]*GoroutineStats, title string) error {
-	file, err := os.Create(fmt.Sprintf("%s.txt", title))
+	// Create directory if it doesn't exist
+	dirName := strings.Split(title, "_")[0] // Get the stage name (everything before the first underscore)
+	if err := os.MkdirAll(dirName, 0755); err != nil {
+		return fmt.Errorf("error creating directory %s: %w", dirName, err)
+	}
+
+	// Create file path within the directory
+	filePath := filepath.Join(dirName, fmt.Sprintf("%s.txt", title))
+	file, err := os.Create(filePath)
 	if err != nil {
 		return fmt.Errorf("error creating stats file: %w", err)
 	}
