@@ -99,8 +99,13 @@ type CaseJSON struct {
 
 // SaveStats saves goroutine performance statistics to a JSON file in a directory named after the stage
 func SaveStats(stats map[GoroutineId]*GoroutineStats, title string) error {
-	// Create directory if it doesn't exist
-	dirName := strings.Split(title, "_")[0] // Get the stage name (everything before the first underscore)
+	// Create static directory if it doesn't exist
+	if err := os.MkdirAll("static", 0755); err != nil {
+		return fmt.Errorf("error creating static directory: %w", err)
+	}
+
+	// Create stage-specific directory under static
+	dirName := filepath.Join("static", strings.Split(title, "_")[0]) // Get the stage name (everything before the first underscore)
 	if err := os.MkdirAll(dirName, 0755); err != nil {
 		return fmt.Errorf("error creating directory %s: %w", dirName, err)
 	}
