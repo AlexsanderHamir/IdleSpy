@@ -1,6 +1,7 @@
 package tracker
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -74,7 +75,29 @@ func PrintAndSaveStats(stats map[GoroutineId]*GoroutineStats, title string) {
 	}
 }
 
-// SaveStats saves goroutine performance statistics to a file in a directory named after the stage
+// JSONStats represents the complete statistics structure for JSON output
+type JSONStats struct {
+	Title      string                   `json:"title"`
+	Goroutines map[string]GoroutineJSON `json:"goroutines"`
+}
+
+// GoroutineJSON represents a single goroutine's statistics in JSON format
+type GoroutineJSON struct {
+	Lifetime        time.Duration       `json:"lifetime"`
+	TotalSelectTime time.Duration       `json:"total_select_blocked_time"`
+	SelectCaseStats map[string]CaseJSON `json:"select_case_statistics"`
+}
+
+// CaseJSON represents statistics for a single select case in JSON format
+type CaseJSON struct {
+	Hits             int64         `json:"hits"`
+	TotalBlockedTime time.Duration `json:"total_blocked_time"`
+	AvgBlockedTime   time.Duration `json:"average_blocked_time,omitempty"`
+	Percentile90     time.Duration `json:"percentile_90,omitempty"`
+	Percentile99     time.Duration `json:"percentile_99,omitempty"`
+}
+
+// SaveStats saves goroutine performance statistics to a JSON file in a directory named after the stage
 func SaveStats(stats map[GoroutineId]*GoroutineStats, title string) error {
 	// Create directory if it doesn't exist
 	dirName := strings.Split(title, "_")[0] // Get the stage name (everything before the first underscore)
@@ -82,33 +105,49 @@ func SaveStats(stats map[GoroutineId]*GoroutineStats, title string) error {
 		return fmt.Errorf("error creating directory %s: %w", dirName, err)
 	}
 
-	// Create file path within the directory
-	filePath := filepath.Join(dirName, fmt.Sprintf("%s.txt", title))
-	file, err := os.Create(filePath)
-	if err != nil {
-		return fmt.Errorf("error creating stats file: %w", err)
+	// Create JSON structure
+	jsonStats := JSONStats{
+		Title:      title,
+		Goroutines: make(map[string]GoroutineJSON),
 	}
-	defer file.Close()
 
-	fmt.Fprintln(file, "\n"+title)
-	fmt.Fprintln(file, strings.Repeat("=", len(title)))
-
+	// Convert stats to JSON structure
 	for goroutineID, stat := range stats {
-		fmt.Fprintf(file, "\nGoroutine %d:\n", goroutineID)
-		fmt.Fprintf(file, "  Lifetime: %v\n", stat.GetGoroutineLifetime())
-		fmt.Fprintf(file, "  Total Select Blocked Time: %v\n", stat.GetTotalSelectTime())
-
-		fmt.Fprintln(file, "  Select Case Statistics:")
-		for caseName, caseStats := range stat.GetSelectStats() {
-			fmt.Fprintf(file, "    %s:\n", caseName)
-			fmt.Fprintf(file, "      Hits: %d\n", caseStats.GetCaseHits())
-			fmt.Fprintf(file, "      Total Blocked Time: %v\n", caseStats.GetCaseTime())
-			if caseStats.GetCaseHits() > 0 {
-				fmt.Fprintf(file, "      Average Blocked Time: %v\n", caseStats.GetCaseTime()/time.Duration(caseStats.GetCaseHits()))
-				fmt.Fprintf(file, "      90th Percentile Blocked Time: %v\n", caseStats.GetPercentile(90))
-				fmt.Fprintf(file, "      99th Percentile Blocked Time: %v\n", caseStats.GetPercentile(99))
-			}
+		goroutineJSON := GoroutineJSON{
+			Lifetime:        stat.GetGoroutineLifetime(),
+			TotalSelectTime: stat.GetTotalSelectTime(),
+			SelectCaseStats: make(map[string]CaseJSON),
 		}
+
+		// Convert select case statistics
+		for caseName, caseStats := range stat.GetSelectStats() {
+			caseJSON := CaseJSON{
+				Hits:             int64(caseStats.GetCaseHits()),
+				TotalBlockedTime: caseStats.GetCaseTime(),
+			}
+
+			if caseStats.GetCaseHits() > 0 {
+				caseJSON.AvgBlockedTime = caseStats.GetCaseTime() / time.Duration(caseStats.GetCaseHits())
+				caseJSON.Percentile90 = caseStats.GetPercentile(90)
+				caseJSON.Percentile99 = caseStats.GetPercentile(99)
+			}
+
+			goroutineJSON.SelectCaseStats[caseName] = caseJSON
+		}
+
+		jsonStats.Goroutines[fmt.Sprintf("%d", goroutineID)] = goroutineJSON
+	}
+
+	// Marshal to JSON with indentation
+	jsonData, err := json.MarshalIndent(jsonStats, "", "  ")
+	if err != nil {
+		return fmt.Errorf("error marshaling stats to JSON: %w", err)
+	}
+
+	// Create file path within the directory with .json extension
+	filePath := filepath.Join(dirName, fmt.Sprintf("%s.json", title))
+	if err := os.WriteFile(filePath, jsonData, 0644); err != nil {
+		return fmt.Errorf("error writing JSON stats file: %w", err)
 	}
 
 	return nil
