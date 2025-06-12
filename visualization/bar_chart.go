@@ -2,6 +2,7 @@ package visualization
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"os"
 	"regexp"
@@ -11,6 +12,28 @@ import (
 	"strings"
 	"time"
 )
+
+// JSONStats represents the complete statistics structure for JSON input
+type JSONStats struct {
+	Title      string                   `json:"title"`
+	Goroutines map[string]GoroutineJSON `json:"goroutines"`
+}
+
+// GoroutineJSON represents a single goroutine's statistics in JSON format
+type GoroutineJSON struct {
+	Lifetime        int64               `json:"lifetime"`
+	TotalSelectTime int64               `json:"total_select_blocked_time"`
+	SelectCaseStats map[string]CaseJSON `json:"select_case_statistics"`
+}
+
+// CaseJSON represents statistics for a single select case in JSON format
+type CaseJSON struct {
+	Hits             int64 `json:"hits"`
+	TotalBlockedTime int64 `json:"total_blocked_time"`
+	AvgBlockedTime   int64 `json:"average_blocked_time"`
+	Percentile90     int64 `json:"percentile_90"`
+	Percentile99     int64 `json:"percentile_99"`
+}
 
 // VisualizationType represents the type of visualization to generate
 type VisualizationType int
@@ -56,6 +79,10 @@ func GenerateBarChart(statsFile string, visType VisualizationType) error {
 	}
 	defer file.Close()
 
+	if strings.HasSuffix(statsFile, ".json") {
+		return GenerateBarChartFromJSON(statsFile, visType)
+	}
+
 	stats, err := parseStats(file)
 	if err != nil {
 		return fmt.Errorf("error parsing stats: %w", err)
@@ -63,6 +90,58 @@ func GenerateBarChart(statsFile string, visType VisualizationType) error {
 
 	printBarChart(stats, visType)
 	return nil
+}
+
+func GenerateBarChartFromJSON(statsFile string, visType VisualizationType) error {
+	file, err := os.ReadFile(statsFile)
+	if err != nil {
+		return fmt.Errorf("error opening file: %w", err)
+	}
+
+	stats, err := ParseJSONToCaseStats(file)
+	if err != nil {
+		return fmt.Errorf("error parsing stats: %w", err)
+	}
+
+	printBarChart(stats, visType)
+	return nil
+}
+
+func ParseJSONToCaseStats(data []byte) ([]CaseStats, error) {
+	var input JSONStats
+	if err := json.Unmarshal(data, &input); err != nil {
+		return nil, err
+	}
+
+	// Aggregate stats per case name
+	caseStatsMap := make(map[string]*CaseStats)
+
+	for _, goroutine := range input.Goroutines {
+		for caseName, stat := range goroutine.SelectCaseStats {
+			entry, exists := caseStatsMap[caseName]
+			if !exists {
+				entry = &CaseStats{
+					CaseName: caseName,
+				}
+				caseStatsMap[caseName] = entry
+			}
+
+			entry.Count += int(stat.Hits)
+			entry.TotalTime += time.Duration(stat.TotalBlockedTime)
+
+			for i := int64(0); i < stat.Hits; i++ {
+				entry.Times = append(entry.Times, time.Duration(stat.AvgBlockedTime))
+			}
+		}
+	}
+
+	// Convert map to slice
+	var result []CaseStats
+	for _, v := range caseStatsMap {
+		result = append(result, *v)
+	}
+
+	return result, nil
 }
 
 func calculatePercentile(times []time.Duration, percentile float64) time.Duration {
@@ -143,7 +222,7 @@ func printBarChart(stats []CaseStats, visType VisualizationType) {
 			barLength = 1
 		}
 
-		fmt.Printf("%-20s %s %s (from %d goroutines)\n",
+		fmt.Printf("%-20s %s %s (from %d hits)\n",
 			stat.CaseName,
 			strings.Repeat("█", barLength),
 			valueStr,

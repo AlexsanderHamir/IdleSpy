@@ -2,6 +2,7 @@ package visualization
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"os"
 	"regexp"
@@ -29,6 +30,10 @@ func GenerateLineGraph(statsFile string) error {
 	}
 	defer file.Close()
 
+	if strings.HasSuffix(statsFile, ".json") {
+		return GenerateLineGraphFromJSON(statsFile)
+	}
+
 	scanner := bufio.NewScanner(file)
 	stats, err := parseGoroutineStats(scanner)
 	if err != nil {
@@ -37,6 +42,70 @@ func GenerateLineGraph(statsFile string) error {
 
 	printLineGraph(stats)
 	return nil
+}
+
+func GenerateLineGraphFromJSON(statsFile string) error {
+	file, err := os.ReadFile(statsFile)
+	if err != nil {
+		return fmt.Errorf("error opening file: %w", err)
+	}
+
+	stats, err := ParseJSONToGoroutineStats(file)
+	if err != nil {
+		return fmt.Errorf("error parsing stats: %w", err)
+	}
+
+	printLineGraph(stats)
+	return nil
+}
+
+func ParseJSONToGoroutineStats(data []byte) ([]GoroutineStats, error) {
+	var input JSONStats
+	if err := json.Unmarshal(data, &input); err != nil {
+		return nil, err
+	}
+
+	var stats []GoroutineStats
+	now := time.Now()
+
+	for idStr, g := range input.Goroutines {
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid goroutine ID: %s", idStr)
+		}
+
+		// Accumulate all simulated individual blocked times
+		var blockedTimes []time.Duration
+		var totalBlocked time.Duration
+
+		for _, caseStat := range g.SelectCaseStats {
+			avg := time.Duration(caseStat.AvgBlockedTime)
+			for i := int64(0); i < caseStat.Hits; i++ {
+				blockedTimes = append(blockedTimes, avg)
+			}
+			totalBlocked += time.Duration(caseStat.TotalBlockedTime)
+		}
+
+		lifetime := time.Duration(g.Lifetime)
+		endTime := now
+		startTime := endTime.Add(-lifetime)
+
+		efficiency := 1.0
+		if lifetime > 0 {
+			efficiency = 1 - float64(totalBlocked)/float64(lifetime)
+		}
+
+		stats = append(stats, GoroutineStats{
+			ID:           id,
+			Lifetime:     lifetime,
+			BlockedTimes: blockedTimes,
+			StartTime:    startTime,
+			EndTime:      endTime,
+			Efficiency:   efficiency,
+		})
+	}
+
+	return stats, nil
 }
 
 func parseGoroutineStats(scanner *bufio.Scanner) ([]GoroutineStats, error) {
@@ -55,7 +124,7 @@ func parseGoroutineStats(scanner *bufio.Scanner) ([]GoroutineStats, error) {
 
 		if matches := goroutinePattern.FindStringSubmatch(line); matches != nil {
 			id, _ := strconv.Atoi(matches[1])
-			startTime = time.Now().Add(-20 * time.Second) // Approximate start time
+			startTime = time.Now().Add(-20 * time.Second)
 			currentGoroutine = &GoroutineStats{
 				ID:           id,
 				StartTime:    startTime,
