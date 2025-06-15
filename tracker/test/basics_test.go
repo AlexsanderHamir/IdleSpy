@@ -92,7 +92,7 @@ func TestConcurrentTracking(t *testing.T) {
 	goroutineCount := 10
 	gm.StatsFileName = "concurrent_tracking"
 	gm.FileType = "json"
-	gm.Action = tracker.PrintAndSave
+	gm.Action = tracker.Print
 	gm.Wg.Add(goroutineCount)
 
 	// Launch multiple goroutines that track their own stats

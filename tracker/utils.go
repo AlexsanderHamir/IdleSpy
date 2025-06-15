@@ -18,3 +18,26 @@ func getGoroutineID() GoroutineId {
 	return GoroutineId(id)
 }
 
+func (gm *GoroutineManager) handleTextActions() {
+	allStats := gm.GetAllStats()
+	switch gm.Action {
+	case PrintAndSave:
+		PrintAndSaveStatsText(allStats, gm.StatsFileName)
+	case Save:
+		SaveStatsText(allStats, gm.StatsFileName)
+	case Print:
+		PrintStatsText(allStats, gm.StatsFileName)
+	}
+}
+
+func (gm *GoroutineManager) handleJsonActions() {
+	allStats := gm.GetAllStats()
+	switch gm.Action {
+	case PrintAndSave:
+		PrintAndSaveStatsJSON(allStats, gm.StatsFileName)
+	case Save:
+		SaveStatsJSON(allStats, gm.StatsFileName)
+	case Print:
+		PrintStatsJSON(allStats, gm.StatsFileName)
+	}
+}

@@ -6,10 +6,6 @@ import (
 	"time"
 )
 
-const (
-	StatsFileName = "goroutine_stats"
-)
-
 // NewGoroutineManager creates a new goroutine statistics manager
 func NewGoroutineManager() *GoroutineManager {
 	return &GoroutineManager{
@@ -88,25 +84,10 @@ func (gm *GoroutineManager) GetAllStats() map[GoroutineId]*GoroutineStats {
 func (gm *GoroutineManager) Done() error {
 	gm.Wg.Wait()
 
-	allStats := gm.GetAllStats()
 	if gm.FileType == "text" {
-		switch gm.Action {
-		case PrintAndSave:
-			PrintAndSaveStatsText(allStats, gm.StatsFileName)
-		case Save:
-			SaveStatsText(allStats, gm.StatsFileName)
-		case Print:
-			PrintStatsText(allStats, gm.StatsFileName)
-		}
+		gm.handleTextActions()
 	} else if gm.FileType == "json" {
-		switch gm.Action {
-		case PrintAndSave:
-			PrintAndSaveStatsJSON(allStats, gm.StatsFileName)
-		case Save:
-			SaveStatsJSON(allStats, gm.StatsFileName)
-		case Print:
-			PrintStatsJSON(allStats, gm.StatsFileName)
-		}
+		gm.handleJsonActions()
 	} else {
 		return fmt.Errorf("invalid file type: %s", gm.FileType)
 	}
