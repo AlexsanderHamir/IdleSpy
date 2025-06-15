@@ -70,10 +70,10 @@ import (
 
 
 	goroutineCount := 10
-
 	gm := tracker.NewGoroutineManager()
-	gm.StatsFileName = "concurrent_tracking"
-	gm.FileType = "json" // text
+	// "text" or "json": if "json" is selected, only the .internal.json file is generated.
+	// If "text" is selected, both .internal.json (for parsing) and .visualization.txt are created.
+	gm.FileType = "json"
 	gm.Action = tracker.PrintAndSave // Save => save only // Print => print only
 	gm.Wg.Add(goroutineCount)
 
@@ -108,7 +108,7 @@ func processItems(gm *tracker.GoroutineManager,ctx context.Context, items <-chan
 	}
 }
 
-// Wait for all goroutines to finish so you can print the final results
+// Wait for all goroutines to finish so you can print the final results (blocking)
 err := gm.Done()
 	if err != nil {
 	 t.Errorf("Error saving stats: %v", err)
@@ -123,17 +123,17 @@ Use the CLI tool to generate visualizations of your tracking data:
 
 ```bash
 # Generate efficiency score chart
-idlespy -file ./fileName.txt -chart score
+idlespy -chart score
 
 # View blocking time distribution across select cases
-idlespy -file ./fileName.txt -chart total-blocked-time
+idlespy -chart total-blocked-time
 ```
 
 > Note: Run `idlespy -help` for more.
 
 ### 📊 Understanding the Statistics
 
-The tracker will generate detailed runtime statistics and save them to a `fileName.txt` file. Below is an example of the data format:
+The tracker generates detailed runtime statistics and saves them to a .internal.json file, and optionally to a .visualization.txt file if enabled. An example of the generated data format is shown below:
 
 #### 🧵 Goroutine 35
 
