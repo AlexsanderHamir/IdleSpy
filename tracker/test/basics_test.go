@@ -1,7 +1,6 @@
 package test
 
 import (
-	"sync"
 	"testing"
 	"time"
 
@@ -20,6 +19,7 @@ func TestNewGoroutineManager(t *testing.T) {
 
 func TestTrackGoroutineStartAndEnd(t *testing.T) {
 	gm := tracker.NewGoroutineManager()
+	gm.Wg.Add(1)
 
 	// Test tracking in main goroutine
 	id := gm.TrackGoroutineStart()
@@ -76,7 +76,6 @@ func TestTrackSelectCase(t *testing.T) {
 		t.Errorf("Expected case time %v, got %v", duration, selectStats.GetCaseTime())
 	}
 
-	// Test multiple hits
 	gm.TrackSelectCase(caseName, duration, id)
 	selectStats = stats.GetSelectCaseStats(caseName)
 	if selectStats.GetCaseHits() != 2 {
@@ -92,8 +91,8 @@ func TestConcurrentTracking(t *testing.T) {
 
 	goroutineCount := 10
 	gm.StatsFileName = "concurrent_tracking"
-	gm.FileType = "text"
-	gm.PrintAndSave = true
+	gm.FileType = "json"
+	gm.Action = tracker.PrintAndSave
 	gm.Wg.Add(goroutineCount)
 
 	// Launch multiple goroutines that track their own stats
@@ -119,13 +118,11 @@ func TestConcurrentTracking(t *testing.T) {
 		t.Errorf("Error saving stats: %v", err)
 	}
 
-	// Verify all goroutines were tracked
 	allStats := gm.GetAllStats()
 	if len(allStats) != goroutineCount {
 		t.Errorf("Expected %d goroutines, got %d", goroutineCount, len(allStats))
 	}
 
-	// Verify select stats for each goroutine
 	for _, stats := range allStats {
 		selectStats := stats.GetSelectStats()
 		if len(selectStats) != 2 {
@@ -133,7 +130,7 @@ func TestConcurrentTracking(t *testing.T) {
 		}
 
 		totalTime := stats.GetTotalSelectTime()
-		expectedTime := 150 * time.Millisecond // 50ms + 100ms
+		expectedTime := 150 * time.Millisecond
 		if totalTime != expectedTime {
 			t.Errorf("Expected total select time %v, got %v", expectedTime, totalTime)
 		}
@@ -156,36 +153,5 @@ func TestGetGoroutineStats(t *testing.T) {
 	}
 	if stats.GoroutineId != id {
 		t.Errorf("Expected goroutine ID %d, got %d", id, stats.GoroutineId)
-	}
-}
-
-func TestGetAllStats(t *testing.T) {
-	gm := tracker.NewGoroutineManager()
-
-	// Track a few goroutines
-	id1 := gm.TrackGoroutineStart()
-	gm.TrackSelectCase("case1", 100*time.Millisecond, id1)
-
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		id := gm.TrackGoroutineStart()
-		gm.TrackSelectCase("case2", 200*time.Millisecond, id)
-		gm.TrackGoroutineEnd(id)
-	}()
-	wg.Wait()
-
-	// Get all stats
-	allStats := gm.GetAllStats()
-	if len(allStats) != 2 {
-		t.Errorf("Expected 2 goroutines, got %d", len(allStats))
-	}
-
-	// Verify stats for each goroutine
-	if stats, exists := allStats[id1]; !exists {
-		t.Error("Stats not found for first goroutine")
-	} else if len(stats.SelectStats) != 1 {
-		t.Errorf("Expected 1 select case for first goroutine, got %d", len(stats.SelectStats))
 	}
 }

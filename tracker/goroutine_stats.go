@@ -231,3 +231,70 @@ func SaveStatsJSON(stats map[GoroutineId]*GoroutineStats, title string) error {
 
 	return nil
 }
+
+// PrintStatsJSON prints goroutine performance statistics as JSON to stdout
+func PrintStatsJSON(stats map[GoroutineId]*GoroutineStats, title string) {
+	// Create JSON structure
+	jsonStats := JSONStats{
+		Title:      title,
+		Goroutines: make(map[string]GoroutineJSON),
+	}
+
+	// Populate the structure
+	for goroutineID, stat := range stats {
+		goroutineJSON := GoroutineJSON{
+			Lifetime:        stat.GetGoroutineLifetime(),
+			TotalSelectTime: stat.GetTotalSelectTime(),
+			SelectCaseStats: make(map[string]CaseJSON),
+		}
+
+		for caseName, caseStats := range stat.GetSelectStats() {
+			caseJSON := CaseJSON{
+				Hits:             int64(caseStats.GetCaseHits()),
+				TotalBlockedTime: caseStats.GetCaseTime(),
+			}
+			if caseStats.GetCaseHits() > 0 {
+				caseJSON.AvgBlockedTime = caseStats.GetCaseTime() / time.Duration(caseStats.GetCaseHits())
+				caseJSON.Percentile90 = caseStats.GetPercentile(90)
+				caseJSON.Percentile99 = caseStats.GetPercentile(99)
+			}
+			goroutineJSON.SelectCaseStats[caseName] = caseJSON
+		}
+
+		jsonStats.Goroutines[fmt.Sprintf("%d", goroutineID)] = goroutineJSON
+	}
+
+	// Marshal to JSON and print to stdout
+	jsonData, err := json.MarshalIndent(jsonStats, "", "  ")
+	if err != nil {
+		log.Printf("Error marshaling stats to JSON: %v", err)
+		return
+	}
+
+	fmt.Println(string(jsonData))
+}
+
+// PrintStatsText prints a summary of goroutine performance statistics to stdout
+func PrintStatsText(stats map[GoroutineId]*GoroutineStats, title string) {
+	// Write title
+	fmt.Println("\n" + title)
+	fmt.Println(strings.Repeat("=", len(title)))
+
+	for goroutineID, stat := range stats {
+		fmt.Fprintf(os.Stdout, "\nGoroutine %d:\n", goroutineID)
+		fmt.Fprintf(os.Stdout, "  Lifetime: %v\n", stat.GetGoroutineLifetime())
+		fmt.Fprintf(os.Stdout, "  Total Select Blocked Time: %v\n", stat.GetTotalSelectTime())
+
+		fmt.Fprintln(os.Stdout, "  Select Case Statistics:")
+		for caseName, caseStats := range stat.GetSelectStats() {
+			fmt.Fprintf(os.Stdout, "    %s:\n", caseName)
+			fmt.Fprintf(os.Stdout, "      Hits: %d\n", caseStats.GetCaseHits())
+			fmt.Fprintf(os.Stdout, "      Total Blocked Time: %v\n", caseStats.GetCaseTime())
+			if caseStats.GetCaseHits() > 0 {
+				fmt.Fprintf(os.Stdout, "      Average Blocked Time: %v\n", caseStats.GetCaseTime()/time.Duration(caseStats.GetCaseHits()))
+				fmt.Fprintf(os.Stdout, "      90th Percentile Blocked Time: %v\n", caseStats.GetPercentile(90))
+				fmt.Fprintf(os.Stdout, "      99th Percentile Blocked Time: %v\n", caseStats.GetPercentile(99))
+			}
+		}
+	}
+}

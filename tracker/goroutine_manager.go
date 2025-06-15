@@ -37,8 +37,8 @@ func (gm *GoroutineManager) TrackGoroutineStart() GoroutineId {
 func (gm *GoroutineManager) TrackGoroutineEnd(id GoroutineId) {
 	gm.mu.Lock()
 	defer func() {
-		gm.mu.Unlock()
 		gm.Wg.Done()
+		gm.mu.Unlock()
 	}()
 
 	if stats, exists := gm.Stats[id]; exists {
@@ -90,16 +90,22 @@ func (gm *GoroutineManager) Done() error {
 
 	allStats := gm.GetAllStats()
 	if gm.FileType == "text" {
-		if gm.PrintAndSave {
+		switch gm.Action {
+		case PrintAndSave:
 			PrintAndSaveStatsText(allStats, gm.StatsFileName)
-		} else {
+		case Save:
 			SaveStatsText(allStats, gm.StatsFileName)
+		case Print:
+			PrintStatsText(allStats, gm.StatsFileName)
 		}
 	} else if gm.FileType == "json" {
-		if gm.PrintAndSave {
+		switch gm.Action {
+		case PrintAndSave:
 			PrintAndSaveStatsJSON(allStats, gm.StatsFileName)
-		} else {
+		case Save:
 			SaveStatsJSON(allStats, gm.StatsFileName)
+		case Print:
+			PrintStatsJSON(allStats, gm.StatsFileName)
 		}
 	} else {
 		return fmt.Errorf("invalid file type: %s", gm.FileType)

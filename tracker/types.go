@@ -6,6 +6,14 @@ import (
 	"time"
 )
 
+type Action string
+
+const (
+	PrintAndSave Action = "print_and_save"
+	Save         Action = "save"
+	Print        Action = "print"
+)
+
 // GoroutineManager manages statistics for multiple goroutines
 type GoroutineId int
 type GoroutineManager struct {
@@ -14,7 +22,7 @@ type GoroutineManager struct {
 	Wg            sync.WaitGroup
 	StatsFileName string
 	FileType      string // text or json
-	PrintAndSave  bool   // defaults to save without printing
+	Action        Action
 }
 
 // GoroutineStats holds statistics for a single goroutine
