@@ -205,9 +205,16 @@ func printLineGraph(stats []GoroutineStats) {
 	fmt.Println(strings.Repeat("=", 30))
 
 	for _, g := range stats {
-		efficiencyPercent := g.Efficiency * 100
+		efficiency := g.Efficiency
+		if efficiency < 0 {
+			efficiency = 0
+		} else if efficiency > 1 {
+			efficiency = 1
+		}
+
+		efficiencyPercent := efficiency * 100
 		barWidth := 40
-		filledWidth := int(efficiencyPercent * float64(barWidth) / 100)
+		filledWidth := int(efficiency * float64(barWidth))
 
 		fmt.Printf("Goroutine %-4d [%s%s] %.1f%%\n",
 			g.ID,
@@ -219,6 +226,7 @@ func printLineGraph(stats []GoroutineStats) {
 		fmt.Printf("    Blocked: %.6fs\n", sumDurations(g.BlockedTimes).Seconds())
 		fmt.Println()
 	}
+
 }
 
 func sumDurations(durations []time.Duration) time.Duration {
