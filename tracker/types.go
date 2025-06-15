@@ -1,16 +1,20 @@
 package tracker
 
 import (
+	"slices"
 	"sync"
 	"time"
-	"slices"
 )
 
 // GoroutineManager manages statistics for multiple goroutines
 type GoroutineId int
 type GoroutineManager struct {
-	Stats map[GoroutineId]*GoroutineStats
-	mu    sync.RWMutex
+	Stats         map[GoroutineId]*GoroutineStats
+	mu            sync.RWMutex
+	Wg            sync.WaitGroup
+	StatsFileName string
+	FileType      string // text or json
+	PrintAndSave  bool   // defaults to save without printing
 }
 
 // GoroutineStats holds statistics for a single goroutine
