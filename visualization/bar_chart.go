@@ -21,9 +21,9 @@ type JSONStats struct {
 
 // GoroutineJSON represents a single goroutine's statistics in JSON format
 type GoroutineJSON struct {
-	Lifetime        int64               `json:"lifetime"`
-	TotalSelectTime int64               `json:"total_select_blocked_time"`
-	SelectCaseStats map[string]CaseJSON `json:"select_case_statistics"`
+	Lifetime               int64               `json:"lifetime"`
+	TotalSelectBlockedTime int64               `json:"total_select_blocked_time"`
+	SelectCaseStats        map[string]CaseJSON `json:"select_case_statistics"`
 }
 
 // CaseJSON represents statistics for a single select case in JSON format

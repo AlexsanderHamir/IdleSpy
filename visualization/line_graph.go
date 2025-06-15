@@ -13,12 +13,12 @@ import (
 
 // GoroutineStats represents statistics for a single goroutine
 type GoroutineStats struct {
-	ID           int
-	Lifetime     time.Duration
-	BlockedTimes []time.Duration
-	StartTime    time.Time
-	EndTime      time.Time
-	Efficiency   float64
+	ID               int
+	Lifetime         time.Duration
+	TotalBlockedTime time.Duration
+	StartTime        time.Time
+	EndTime          time.Time
+	Efficiency       float64
 }
 
 // GenerateLineGraph reads stats from a file and generates a line graph visualization
@@ -65,7 +65,6 @@ func ParseJSONToGoroutineStats(data []byte) ([]GoroutineStats, error) {
 	}
 
 	var stats []GoroutineStats
-	now := time.Now()
 
 	for idStr, g := range input.Goroutines {
 		id, err := strconv.Atoi(idStr)
@@ -73,34 +72,19 @@ func ParseJSONToGoroutineStats(data []byte) ([]GoroutineStats, error) {
 			return nil, fmt.Errorf("invalid goroutine ID: %s", idStr)
 		}
 
-		// Accumulate all simulated individual blocked times
-		var blockedTimes []time.Duration
-		var totalBlocked time.Duration
-
-		for _, caseStat := range g.SelectCaseStats {
-			avg := time.Duration(caseStat.AvgBlockedTime)
-			for i := int64(0); i < caseStat.Hits; i++ {
-				blockedTimes = append(blockedTimes, avg)
-			}
-			totalBlocked += time.Duration(caseStat.TotalBlockedTime)
-		}
-
+		totalBlocked := time.Duration(g.TotalSelectBlockedTime)
 		lifetime := time.Duration(g.Lifetime)
-		endTime := now
-		startTime := endTime.Add(-lifetime)
 
-		efficiency := 1.0
+		var efficiency float64
 		if lifetime > 0 {
 			efficiency = 1 - float64(totalBlocked)/float64(lifetime)
 		}
 
 		stats = append(stats, GoroutineStats{
-			ID:           id,
-			Lifetime:     lifetime,
-			BlockedTimes: blockedTimes,
-			StartTime:    startTime,
-			EndTime:      endTime,
-			Efficiency:   efficiency,
+			ID:               id,
+			Lifetime:         lifetime,
+			Efficiency:       efficiency,
+			TotalBlockedTime: totalBlocked,
 		})
 	}
 
@@ -143,7 +127,7 @@ func parseGoroutineStats(scanner *bufio.Scanner) ([]GoroutineStats, error) {
 			if err != nil {
 				return nil, fmt.Errorf("error parsing blocked time: %w", err)
 			}
-			currentGoroutine.BlockedTimes = []time.Duration{duration}
+			currentGoroutine.TotalBlockedTime = duration
 			if currentGoroutine.Lifetime > 0 {
 				currentGoroutine.Efficiency = float64(currentGoroutine.Lifetime-duration) / float64(currentGoroutine.Lifetime)
 			}
@@ -194,16 +178,9 @@ func printLineGraph(stats []GoroutineStats) {
 			efficiencyPercent)
 
 		fmt.Printf("    Lifetime: %.6fs\n", g.Lifetime.Seconds())
-		fmt.Printf("    Blocked: %.6fs\n", sumDurations(g.BlockedTimes).Seconds())
+		fmt.Printf("    Blocked: %.6fs\n", g.TotalBlockedTime.Seconds())
 		fmt.Println()
 	}
 
 }
 
-func sumDurations(durations []time.Duration) time.Duration {
-	var total time.Duration
-	for _, d := range durations {
-		total += d
-	}
-	return total
-}

@@ -73,8 +73,8 @@ import (
 
 	gm := tracker.NewGoroutineManager()
 	gm.StatsFileName = "concurrent_tracking"
-	gm.FileType = "json"
-	gm.PrintAndSave = true
+	gm.FileType = "json" // text
+	gm.PrintAndSave = true // defaults to saving and not printing
 	gm.Wg.Add(goroutineCount)
 
 // Simple example of tracking a worker goroutine
