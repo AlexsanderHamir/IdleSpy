@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -25,11 +24,12 @@ type GoroutineJSON struct {
 
 // CaseJSON represents statistics for a single select case in JSON format
 type CaseJSON struct {
-	Hits             int64 `json:"hits"`
-	TotalBlockedTime int64 `json:"total_blocked_time"`
-	AvgBlockedTime   int64 `json:"average_blocked_time"`
-	Percentile90     int64 `json:"percentile_90"`
-	Percentile99     int64 `json:"percentile_99"`
+	CaseName         string `json:"case_name"`
+	Hits             int64  `json:"hits"`
+	TotalBlockedTime int64  `json:"total_blocked_time"`
+	AvgBlockedTime   int64  `json:"average_blocked_time"`
+	Percentile90     int64  `json:"percentile_90"`
+	Percentile99     int64  `json:"percentile_99"`
 }
 
 // VisualizationType represents the type of visualization to generate
@@ -85,7 +85,7 @@ func GenerateBarChart(visType VisualizationType) error {
 }
 
 func GenerateBarChartFromJSON(data []byte, visType VisualizationType) error {
-	stats, goroutineCount, err := ParseJSONToCaseStats(data)
+	stats, goroutineCount, err := ParseJSONToStats(data)
 	if err != nil {
 		return fmt.Errorf("error parsing stats: %w", err)
 	}
@@ -94,71 +94,71 @@ func GenerateBarChartFromJSON(data []byte, visType VisualizationType) error {
 	return nil
 }
 
-func ParseJSONToCaseStats(data []byte) ([]CaseStats, int, error) {
+func ParseJSONToStats(data []byte) ([]*CaseJSON, int, error) {
 	var input JSONStats
 	if err := json.Unmarshal(data, &input); err != nil {
 		return nil, 0, err
 	}
 
-	// Aggregate stats per case name
-	caseStatsMap := make(map[string]*CaseStats)
-
+	var result []*CaseJSON
 	for _, goroutine := range input.Goroutines {
 		for caseName, stat := range goroutine.SelectCaseStats {
-			entry, exists := caseStatsMap[caseName]
-			if !exists {
-				entry = &CaseStats{
-					CaseName: caseName,
-				}
-				caseStatsMap[caseName] = entry
-			}
-
-			entry.Count += int(stat.Hits)
-			entry.TotalTime += time.Duration(stat.TotalBlockedTime)
-
-			for i := int64(0); i < stat.Hits; i++ {
-				entry.Times = append(entry.Times, time.Duration(stat.AvgBlockedTime))
-			}
+			stat.CaseName = caseName
+			result = append(result, &stat)
 		}
-	}
-
-	// Convert map to slice
-	var result []CaseStats
-	for _, v := range caseStatsMap {
-		result = append(result, *v)
 	}
 
 	return result, len(input.Goroutines), nil
 }
 
-func calculatePercentile(times []time.Duration, percentile float64) time.Duration {
-	if len(times) == 0 {
-		return 0
-	}
-
-	slices.Sort(times)
-	index := int(float64(len(times)-1) * percentile / 100.0)
-	return times[index]
-}
-
-func printBarChart(stats []CaseStats, visType VisualizationType, goroutineCount int) {
-	if len(stats) == 0 {
+func printBarChart(caseStats []*CaseJSON, visType VisualizationType, goroutineCount int) {
+	if len(caseStats) == 0 {
 		fmt.Println("No valid statistics found")
 		return
 	}
 
-	sort.Slice(stats, func(i, j int) bool {
+	aggregatedStats := make(map[string]*CaseJSON)
+	for _, stat := range caseStats {
+		if existing, exists := aggregatedStats[stat.CaseName]; exists {
+			existing.Hits += stat.Hits
+			existing.TotalBlockedTime += stat.TotalBlockedTime
+			existing.AvgBlockedTime += stat.AvgBlockedTime
+
+			if stat.Percentile90 > existing.Percentile90 {
+				existing.Percentile90 = stat.Percentile90
+			}
+			if stat.Percentile99 > existing.Percentile99 {
+				existing.Percentile99 = stat.Percentile99
+			}
+		} else {
+			aggregatedStats[stat.CaseName] = &CaseJSON{
+				CaseName:         stat.CaseName,
+				Hits:             stat.Hits,
+				TotalBlockedTime: stat.TotalBlockedTime,
+				AvgBlockedTime:   stat.AvgBlockedTime,
+				Percentile90:     stat.Percentile90,
+				Percentile99:     stat.Percentile99,
+			}
+		}
+	}
+
+	var aggregatedSlice []*CaseJSON
+	for _, stat := range aggregatedStats {
+		aggregatedSlice = append(aggregatedSlice, stat)
+	}
+
+	sort.Slice(aggregatedSlice, func(i, j int) bool {
 		switch visType {
 		case TotalBlockedTime:
-			return stats[i].TotalTime > stats[j].TotalTime
+			return aggregatedSlice[i].TotalBlockedTime > aggregatedSlice[j].TotalBlockedTime
 		case AverageTime:
-			return (stats[i].TotalTime / time.Duration(stats[i].Count)) > (stats[j].TotalTime / time.Duration(stats[j].Count))
+			return aggregatedSlice[i].AvgBlockedTime > aggregatedSlice[j].AvgBlockedTime
 		case Percentile90:
-			return calculatePercentile(stats[i].Times, 90) > calculatePercentile(stats[j].Times, 90)
+			return aggregatedSlice[i].Percentile90 > aggregatedSlice[j].Percentile90
 		case Percentile99:
-			return calculatePercentile(stats[i].Times, 99) > calculatePercentile(stats[j].Times, 99)
+			return aggregatedSlice[i].Percentile99 > aggregatedSlice[j].Percentile99
 		case TotalHits:
-			return stats[i].Count > stats[j].Count
+			return aggregatedSlice[i].Hits > aggregatedSlice[j].Hits
 		default:
 			return false
 		}
@@ -167,41 +167,35 @@ func printBarChart(stats []CaseStats, visType VisualizationType, goroutineCount 
 	var maxValue float64
 	switch visType {
 	case TotalBlockedTime:
-		maxValue = float64(stats[0].TotalTime)
+		maxValue = float64(aggregatedSlice[0].TotalBlockedTime)
 	case AverageTime:
-		maxValue = float64(stats[0].TotalTime) / float64(stats[0].Count)
+		maxValue = float64(aggregatedSlice[0].AvgBlockedTime)
 	case Percentile90:
-		maxValue = float64(calculatePercentile(stats[0].Times, 90))
+		maxValue = float64(aggregatedSlice[0].Percentile90)
 	case Percentile99:
-		maxValue = float64(calculatePercentile(stats[0].Times, 99))
+		maxValue = float64(aggregatedSlice[0].Percentile99)
 	case TotalHits:
-		maxValue = float64(stats[0].Count)
+		maxValue = float64(aggregatedSlice[0].Hits)
 	}
-	barWidth := 40
 
+	barWidth := 40
 	fmt.Printf("\n%s Blocked Time Across %d Goroutines\n", visType, goroutineCount)
 	fmt.Println(strings.Repeat("=", len(visType.String())+30))
 
-	for _, stat := range stats {
+	// Print bars for each aggregated case
+	for _, stat := range aggregatedSlice {
 		var value float64
-		var valueStr string
-
 		switch visType {
 		case TotalBlockedTime:
-			value = float64(stat.TotalTime)
-			valueStr = formatDuration(stat.TotalTime)
+			value = float64(stat.TotalBlockedTime)
 		case AverageTime:
-			value = float64(stat.TotalTime) / float64(stat.Count)
-			valueStr = formatDuration(time.Duration(value))
+			value = float64(stat.AvgBlockedTime)
 		case Percentile90:
-			value = float64(calculatePercentile(stat.Times, 90))
-			valueStr = formatDuration(time.Duration(value))
+			value = float64(stat.Percentile90)
 		case Percentile99:
-			value = float64(calculatePercentile(stat.Times, 99))
-			valueStr = formatDuration(time.Duration(value))
+			value = float64(stat.Percentile99)
 		case TotalHits:
-			value = float64(stat.Count)
-			valueStr = fmt.Sprintf("%d hits", stat.Count)
+			value = float64(stat.Hits)
 		}
 
 		barLength := int(value / maxValue * float64(barWidth))
@@ -209,6 +203,7 @@ func printBarChart(stats []CaseStats, visType VisualizationType, goroutineCount 
 			barLength = 1
 		}
 
+		valueStr := formatDuration(time.Duration(value))
 		fmt.Printf("%-20s %s %s\n",
 			stat.CaseName,
 			strings.Repeat("█", barLength),
