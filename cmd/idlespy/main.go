@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/AlexsanderHamir/IdleSpy/sharedtypes"
 	"github.com/AlexsanderHamir/IdleSpy/visualization"
 )
 
@@ -35,15 +36,15 @@ func main() {
 	case "score":
 		err = visualization.GenerateLineGraph()
 	case "total-blocked-time":
-		err = visualization.GenerateBarChart(visualization.TotalBlockedTime)
+		err = visualization.GenerateBarChart(sharedtypes.TotalBlockedTime)
 	case "avg-blocked-time":
-		err = visualization.GenerateBarChart(visualization.AverageTime)
+		err = visualization.GenerateBarChart(sharedtypes.AverageTime)
 	case "p90-blocked-time":
-		err = visualization.GenerateBarChart(visualization.Percentile90)
+		err = visualization.GenerateBarChart(sharedtypes.Percentile90)
 	case "p99-blocked-time":
-		err = visualization.GenerateBarChart(visualization.Percentile99)
+		err = visualization.GenerateBarChart(sharedtypes.Percentile99)
 	case "hits":
-		err = visualization.GenerateBarChart(visualization.TotalHits)
+		err = visualization.GenerateBarChart(sharedtypes.TotalHits)
 	default:
 		fmt.Printf("Error: unknown chart type '%s'\n", *chartType)
 		fmt.Print(chartDescriptions)
