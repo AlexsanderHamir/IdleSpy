@@ -123,17 +123,17 @@ Use the CLI tool to generate visualizations of your tracking data:
 
 ```bash
 # Generate efficiency score chart
-idlespy -file ./stats.txt -chart score
+idlespy -file ./fileName.txt -chart score
 
 # View blocking time distribution across select cases
-idlespy -file ./stats.txt -chart total-blocked-time
+idlespy -file ./fileName.txt -chart total-blocked-time
 ```
 
 > Note: Run `idlespy -help` for more.
 
 ### 📊 Understanding the Statistics
 
-The tracker will generate detailed runtime statistics and save them to a `stats.txt` file. Below is an example of the data format:
+The tracker will generate detailed runtime statistics and save them to a `fileName.txt` file. Below is an example of the data format:
 
 #### 🧵 Goroutine 35
 
