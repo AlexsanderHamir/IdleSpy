@@ -19,8 +19,6 @@ Available chart types:
 `
 
 func main() {
-	// Define command line flags
-	statsFile := flag.String("file", "", "Path to the stats file to visualize")
 	chartType := flag.String("chart", "score", "Type of chart to generate (see descriptions below)")
 
 	// Custom usage function to include chart descriptions
@@ -32,26 +30,20 @@ func main() {
 
 	flag.Parse()
 
-	if *statsFile == "" {
-		fmt.Println("Error: stats file path is required")
-		flag.Usage()
-		os.Exit(1)
-	}
-
 	var err error
 	switch *chartType {
 	case "score":
-		err = visualization.GenerateLineGraph(*statsFile)
+		err = visualization.GenerateLineGraph()
 	case "total-blocked-time":
-		err = visualization.GenerateBarChart(*statsFile, visualization.TotalTime)
+		err = visualization.GenerateBarChart(visualization.TotalBlockedTime)
 	case "avg-blocked-time":
-		err = visualization.GenerateBarChart(*statsFile, visualization.AverageTime)
+		err = visualization.GenerateBarChart(visualization.AverageTime)
 	case "p90-blocked-time":
-		err = visualization.GenerateBarChart(*statsFile, visualization.Percentile90)
+		err = visualization.GenerateBarChart(visualization.Percentile90)
 	case "p99-blocked-time":
-		err = visualization.GenerateBarChart(*statsFile, visualization.Percentile99)
+		err = visualization.GenerateBarChart(visualization.Percentile99)
 	case "hits":
-		err = visualization.GenerateBarChart(*statsFile, visualization.TotalHits)
+		err = visualization.GenerateBarChart(visualization.TotalHits)
 	default:
 		fmt.Printf("Error: unknown chart type '%s'\n", *chartType)
 		fmt.Print(chartDescriptions)

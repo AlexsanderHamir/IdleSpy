@@ -1,14 +1,11 @@
 package visualization
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"os"
-	"regexp"
 	"slices"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -39,7 +36,7 @@ type CaseJSON struct {
 type VisualizationType int
 
 const (
-	TotalTime VisualizationType = iota
+	TotalBlockedTime VisualizationType = iota
 	AverageTime
 	Percentile90
 	Percentile99
@@ -48,7 +45,7 @@ const (
 
 func (vt VisualizationType) String() string {
 	switch vt {
-	case TotalTime:
+	case TotalBlockedTime:
 		return "Total"
 	case AverageTime:
 		return "Average"
@@ -72,45 +69,35 @@ type CaseStats struct {
 }
 
 // GenerateBarChart reads stats from a file and generates a bar chart visualization
-func GenerateBarChart(statsFile string, visType VisualizationType) error {
-	file, err := os.Open(statsFile)
+func GenerateBarChart(visType VisualizationType) error {
+	statsFile := ".internal.json"
+	data, err := os.ReadFile(statsFile)
 	if err != nil {
-		return fmt.Errorf("error opening file: %w", err)
-	}
-	defer file.Close()
-
-	if strings.HasSuffix(statsFile, ".json") {
-		return GenerateBarChartFromJSON(statsFile, visType)
+		return fmt.Errorf("error reading stats file: %w", err)
 	}
 
-	stats, err := parseStats(file)
+	err = GenerateBarChartFromJSON(data, visType)
+	if err != nil {
+		return fmt.Errorf("error generating bar chart: %w", err)
+	}
+
+	return nil
+}
+
+func GenerateBarChartFromJSON(data []byte, visType VisualizationType) error {
+	stats, goroutineCount, err := ParseJSONToCaseStats(data)
 	if err != nil {
 		return fmt.Errorf("error parsing stats: %w", err)
 	}
 
-	printBarChart(stats, visType)
+	printBarChart(stats, visType, goroutineCount)
 	return nil
 }
 
-func GenerateBarChartFromJSON(statsFile string, visType VisualizationType) error {
-	file, err := os.ReadFile(statsFile)
-	if err != nil {
-		return fmt.Errorf("error opening file: %w", err)
-	}
-
-	stats, err := ParseJSONToCaseStats(file)
-	if err != nil {
-		return fmt.Errorf("error parsing stats: %w", err)
-	}
-
-	printBarChart(stats, visType)
-	return nil
-}
-
-func ParseJSONToCaseStats(data []byte) ([]CaseStats, error) {
+func ParseJSONToCaseStats(data []byte) ([]CaseStats, int, error) {
 	var input JSONStats
 	if err := json.Unmarshal(data, &input); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	// Aggregate stats per case name
@@ -141,7 +128,7 @@ func ParseJSONToCaseStats(data []byte) ([]CaseStats, error) {
 		result = append(result, *v)
 	}
 
-	return result, nil
+	return result, len(input.Goroutines), nil
 }
 
 func calculatePercentile(times []time.Duration, percentile float64) time.Duration {
@@ -154,7 +141,7 @@ func calculatePercentile(times []time.Duration, percentile float64) time.Duratio
 	return times[index]
 }
 
-func printBarChart(stats []CaseStats, visType VisualizationType) {
+func printBarChart(stats []CaseStats, visType VisualizationType, goroutineCount int) {
 	if len(stats) == 0 {
 		fmt.Println("No valid statistics found")
 		return
@@ -162,7 +149,7 @@ func printBarChart(stats []CaseStats, visType VisualizationType) {
 
 	sort.Slice(stats, func(i, j int) bool {
 		switch visType {
-		case TotalTime:
+		case TotalBlockedTime:
 			return stats[i].TotalTime > stats[j].TotalTime
 		case AverageTime:
 			return (stats[i].TotalTime / time.Duration(stats[i].Count)) > (stats[j].TotalTime / time.Duration(stats[j].Count))
@@ -179,7 +166,7 @@ func printBarChart(stats []CaseStats, visType VisualizationType) {
 
 	var maxValue float64
 	switch visType {
-	case TotalTime:
+	case TotalBlockedTime:
 		maxValue = float64(stats[0].TotalTime)
 	case AverageTime:
 		maxValue = float64(stats[0].TotalTime) / float64(stats[0].Count)
@@ -192,7 +179,7 @@ func printBarChart(stats []CaseStats, visType VisualizationType) {
 	}
 	barWidth := 40
 
-	fmt.Printf("\n%s Blocked Time Across Goroutines\n", visType)
+	fmt.Printf("\n%s Blocked Time Across %d Goroutines\n", visType, goroutineCount)
 	fmt.Println(strings.Repeat("=", len(visType.String())+30))
 
 	for _, stat := range stats {
@@ -200,7 +187,7 @@ func printBarChart(stats []CaseStats, visType VisualizationType) {
 		var valueStr string
 
 		switch visType {
-		case TotalTime:
+		case TotalBlockedTime:
 			value = float64(stat.TotalTime)
 			valueStr = formatDuration(stat.TotalTime)
 		case AverageTime:
@@ -222,11 +209,10 @@ func printBarChart(stats []CaseStats, visType VisualizationType) {
 			barLength = 1
 		}
 
-		fmt.Printf("%-20s %s %s (from %d hits)\n",
+		fmt.Printf("%-20s %s %s\n",
 			stat.CaseName,
 			strings.Repeat("█", barLength),
-			valueStr,
-			stat.Count)
+			valueStr)
 	}
 }
 
@@ -238,101 +224,4 @@ func formatDuration(d time.Duration) string {
 	} else {
 		return fmt.Sprintf("~%dµs", d.Microseconds())
 	}
-}
-
-func parseStats(file *os.File) ([]CaseStats, error) {
-	statsMap := make(map[string]*CaseStats)
-	scanner := bufio.NewScanner(file)
-
-	// Regex patterns for parsing
-	casePattern := regexp.MustCompile(`^\s+([a-z_]+):$`)
-	blockedTimePattern := regexp.MustCompile(`Total Blocked Time: ([\d.]+)([a-zµ]+)`)
-
-	var currentCase *CaseStats
-
-	for scanner.Scan() {
-		line := scanner.Text()
-
-		// Skip goroutine headers and other non-case lines
-		if strings.HasPrefix(line, "Goroutine") ||
-			strings.HasPrefix(line, "Worker Performance Statistics") ||
-			strings.HasPrefix(line, "Lifetime:") ||
-			strings.HasPrefix(line, "Total Select Blocked Time:") ||
-			strings.HasPrefix(line, "Select Case Statistics:") {
-			continue
-		}
-
-		if matches := casePattern.FindStringSubmatch(line); matches != nil {
-			caseName := matches[1]
-			if _, exists := statsMap[caseName]; !exists {
-				statsMap[caseName] = &CaseStats{
-					CaseName: caseName,
-					Times:    make([]time.Duration, 0),
-				}
-			}
-			currentCase = statsMap[caseName]
-			continue
-		}
-
-		if currentCase == nil {
-			continue
-		}
-
-		if matches := blockedTimePattern.FindStringSubmatch(line); matches != nil {
-			duration := parseDuration(matches[1] + matches[2])
-			currentCase.TotalTime += duration
-			currentCase.Count++
-			currentCase.Times = append(currentCase.Times, duration)
-		}
-	}
-
-	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("error reading file: %w", err)
-	}
-
-	// Convert map to slice
-	stats := make([]CaseStats, 0, len(statsMap))
-	for _, stat := range statsMap {
-		stats = append(stats, *stat)
-	}
-
-	return stats, nil
-}
-
-func parseDuration(durationStr string) time.Duration {
-	durationStr = strings.TrimSpace(strings.ToLower(durationStr))
-
-	if strings.HasSuffix(durationStr, "ns") {
-		ns, err := strconv.ParseFloat(strings.TrimSuffix(durationStr, "ns"), 64)
-		if err != nil {
-			return 0
-		}
-		return time.Duration(ns * float64(time.Nanosecond))
-	} else if strings.HasSuffix(durationStr, "µs") || strings.HasSuffix(durationStr, "µ") {
-		usStr := strings.TrimSuffix(strings.TrimSuffix(durationStr, "µs"), "µ")
-		us, err := strconv.ParseFloat(usStr, 64)
-		if err != nil {
-			return 0
-		}
-		return time.Duration(us * float64(time.Microsecond))
-	} else if strings.HasSuffix(durationStr, "ms") {
-		ms, err := strconv.ParseFloat(strings.TrimSuffix(durationStr, "ms"), 64)
-		if err != nil {
-			return 0
-		}
-		return time.Duration(ms * float64(time.Millisecond))
-	} else if strings.HasSuffix(durationStr, "m") {
-		minutes, err := strconv.ParseFloat(strings.TrimSuffix(durationStr, "m"), 64)
-		if err != nil {
-			return 0
-		}
-		return time.Duration(minutes * float64(time.Minute))
-	} else if strings.HasSuffix(durationStr, "s") {
-		seconds, err := strconv.ParseFloat(strings.TrimSuffix(durationStr, "s"), 64)
-		if err != nil {
-			return 0
-		}
-		return time.Duration(seconds * float64(time.Second))
-	}
-	return 0
 }

@@ -22,11 +22,13 @@ func (gm *GoroutineManager) handleTextActions() {
 	allStats := gm.GetAllStats()
 	switch gm.Action {
 	case PrintAndSave:
-		PrintAndSaveStatsText(allStats, gm.StatsFileName)
+		PrintAndSaveStatsText(allStats, ".visualization")
+		SaveStatsJSON(allStats, ".internal")
 	case Save:
-		SaveStatsText(allStats, gm.StatsFileName)
+		SaveStatsText(allStats, ".visualization")
+		SaveStatsJSON(allStats, ".internal")
 	case Print:
-		PrintStatsText(allStats, gm.StatsFileName)
+		PrintStatsText(allStats, ".visualization")
 	}
 }
 
@@ -34,10 +36,10 @@ func (gm *GoroutineManager) handleJsonActions() {
 	allStats := gm.GetAllStats()
 	switch gm.Action {
 	case PrintAndSave:
-		PrintAndSaveStatsJSON(allStats, gm.StatsFileName)
+		PrintAndSaveStatsJSON(allStats, ".internal")
 	case Save:
-		SaveStatsJSON(allStats, gm.StatsFileName)
+		SaveStatsJSON(allStats, ".internal")
 	case Print:
-		PrintStatsJSON(allStats, gm.StatsFileName)
+		PrintStatsJSON(allStats, ".internal")
 	}
 }

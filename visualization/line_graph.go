@@ -1,7 +1,6 @@
 package visualization
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -22,34 +21,23 @@ type GoroutineStats struct {
 }
 
 // GenerateLineGraph reads stats from a file and generates a line graph visualization
-func GenerateLineGraph(statsFile string) error {
-	file, err := os.Open(statsFile)
+func GenerateLineGraph() error {
+	statsFile := ".internal.json"
+	data, err := os.ReadFile(statsFile)
 	if err != nil {
-		return fmt.Errorf("error opening stats file: %w", err)
-	}
-	defer file.Close()
-
-	if strings.HasSuffix(statsFile, ".json") {
-		return GenerateLineGraphFromJSON(statsFile)
+		return fmt.Errorf("error reading stats file: %w", err)
 	}
 
-	scanner := bufio.NewScanner(file)
-	stats, err := parseGoroutineStats(scanner)
+	err = GenerateLineGraphFromJSON(data)
 	if err != nil {
-		return fmt.Errorf("error parsing input: %w", err)
+		return fmt.Errorf("error generating line graph: %w", err)
 	}
 
-	printLineGraph(stats)
 	return nil
 }
 
-func GenerateLineGraphFromJSON(statsFile string) error {
-	file, err := os.ReadFile(statsFile)
-	if err != nil {
-		return fmt.Errorf("error opening file: %w", err)
-	}
-
-	stats, err := ParseJSONToGoroutineStats(file)
+func GenerateLineGraphFromJSON(data []byte) error {
+	stats, err := ParseJSONToGoroutineStats(data)
 	if err != nil {
 		return fmt.Errorf("error parsing stats: %w", err)
 	}
@@ -86,61 +74,6 @@ func ParseJSONToGoroutineStats(data []byte) ([]GoroutineStats, error) {
 			Efficiency:       efficiency,
 			TotalBlockedTime: totalBlocked,
 		})
-	}
-
-	return stats, nil
-}
-
-func parseGoroutineStats(scanner *bufio.Scanner) ([]GoroutineStats, error) {
-	var stats []GoroutineStats
-	goroutineMap := make(map[int]*GoroutineStats)
-
-	var currentGoroutine *GoroutineStats
-	for scanner.Scan() {
-		line := scanner.Text()
-
-		if isGoroutineLine(line) {
-			id, err := extractGoroutineID(line)
-			if err != nil {
-				return nil, err
-			}
-			currentGoroutine = &GoroutineStats{ID: id}
-			goroutineMap[id] = currentGoroutine
-			continue
-		}
-
-		if currentGoroutine == nil {
-			continue
-		}
-
-		if isLifetimeLine(line) {
-			duration, err := extractDuration(line, `Lifetime:\s*([\d.]+)([a-zµ]+)`)
-			if err != nil {
-				return nil, fmt.Errorf("error parsing lifetime: %w", err)
-			}
-			currentGoroutine.Lifetime = duration
-			continue
-		}
-
-		if isBlockedTimeLine(line) {
-			duration, err := extractDuration(line, `Total Select Blocked Time:\s*([\d.]+)([a-zµ]+)`)
-			if err != nil {
-				return nil, fmt.Errorf("error parsing blocked time: %w", err)
-			}
-			currentGoroutine.TotalBlockedTime = duration
-			if currentGoroutine.Lifetime > 0 {
-				currentGoroutine.Efficiency = float64(currentGoroutine.Lifetime-duration) / float64(currentGoroutine.Lifetime)
-			}
-			continue
-		}
-	}
-
-	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("error reading file: %w", err)
-	}
-
-	for _, g := range goroutineMap {
-		stats = append(stats, *g)
 	}
 
 	return stats, nil
@@ -183,4 +116,3 @@ func printLineGraph(stats []GoroutineStats) {
 	}
 
 }
-
