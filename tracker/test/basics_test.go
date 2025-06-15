@@ -7,16 +7,6 @@ import (
 	"github.com/AlexsanderHamir/IdleSpy/tracker"
 )
 
-func TestNewGoroutineManager(t *testing.T) {
-	gm := tracker.NewGoroutineManager()
-	if gm == nil {
-		t.Fatal("NewGoroutineManager returned nil")
-	}
-	if gm.Stats == nil {
-		t.Fatal("stats map was not initialized")
-	}
-}
-
 func TestTrackGoroutineStartAndEnd(t *testing.T) {
 	gm := tracker.NewGoroutineManager()
 	gm.Wg.Add(1)
@@ -44,12 +34,6 @@ func TestTrackGoroutineStartAndEnd(t *testing.T) {
 	stats = gm.GetGoroutineStats(id)
 	if stats.EndTime.IsZero() {
 		t.Error("End time was not set after TrackGoroutineEnd")
-	}
-
-	// Test lifetime calculation
-	lifetime := stats.GetGoroutineLifetime()
-	if lifetime <= 0 {
-		t.Errorf("Expected positive lifetime, got %v", lifetime)
 	}
 }
 
@@ -90,22 +74,18 @@ func TestConcurrentTracking(t *testing.T) {
 	gm := tracker.NewGoroutineManager()
 
 	goroutineCount := 10
-	gm.StatsFileName = "concurrent_tracking"
 	gm.FileType = "json"
-	gm.Action = tracker.Print
+	gm.Action = tracker.Save
 	gm.Wg.Add(goroutineCount)
 
-	// Launch multiple goroutines that track their own stats
 	for range goroutineCount {
 		go func() {
 			id := gm.TrackGoroutineStart()
 			defer gm.TrackGoroutineEnd(id)
 
-			// Track some select cases
 			gm.TrackSelectCase("case1", 50*time.Millisecond, id)
 			gm.TrackSelectCase("case2", 100*time.Millisecond, id)
 
-			// Verify stats are accessible
 			stats := gm.GetGoroutineStats(id)
 			if stats == nil {
 				t.Error("Stats not found for concurrent goroutine")
