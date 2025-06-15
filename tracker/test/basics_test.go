@@ -92,7 +92,7 @@ func TestConcurrentTracking(t *testing.T) {
 
 	goroutineCount := 10
 	gm.StatsFileName = "concurrent_tracking"
-	gm.FileType = "json"
+	gm.FileType = "text"
 	gm.PrintAndSave = true
 	gm.Wg.Add(goroutineCount)
 

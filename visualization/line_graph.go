@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -112,24 +111,16 @@ func parseGoroutineStats(scanner *bufio.Scanner) ([]GoroutineStats, error) {
 	var stats []GoroutineStats
 	goroutineMap := make(map[int]*GoroutineStats)
 
-	goroutinePattern := regexp.MustCompile(`Goroutine (\d+):`)
-	lifetimePattern := regexp.MustCompile(`Lifetime: ([\d.]+)s`)
-	blockedTimePattern := regexp.MustCompile(`Total Select Blocked Time: ([\d.]+)([a-zµ]+)`)
-
 	var currentGoroutine *GoroutineStats
-	var startTime time.Time
-
 	for scanner.Scan() {
 		line := scanner.Text()
 
-		if matches := goroutinePattern.FindStringSubmatch(line); matches != nil {
-			id, _ := strconv.Atoi(matches[1])
-			startTime = time.Now().Add(-20 * time.Second)
-			currentGoroutine = &GoroutineStats{
-				ID:           id,
-				StartTime:    startTime,
-				BlockedTimes: []time.Duration{},
+		if isGoroutineLine(line) {
+			id, err := extractGoroutineID(line)
+			if err != nil {
+				return nil, err
 			}
+			currentGoroutine = &GoroutineStats{ID: id}
 			goroutineMap[id] = currentGoroutine
 			continue
 		}
@@ -138,41 +129,23 @@ func parseGoroutineStats(scanner *bufio.Scanner) ([]GoroutineStats, error) {
 			continue
 		}
 
-		if matches := lifetimePattern.FindStringSubmatch(line); matches != nil {
-			lifetime, _ := strconv.ParseFloat(matches[1], 64)
-			currentGoroutine.Lifetime = time.Duration(lifetime * float64(time.Second))
-			currentGoroutine.EndTime = currentGoroutine.StartTime.Add(currentGoroutine.Lifetime)
+		if isLifetimeLine(line) {
+			duration, err := extractDuration(line, `Lifetime:\s*([\d.]+)([a-zµ]+)`)
+			if err != nil {
+				return nil, fmt.Errorf("error parsing lifetime: %w", err)
+			}
+			currentGoroutine.Lifetime = duration
 			continue
 		}
 
-		if matches := blockedTimePattern.FindStringSubmatch(line); matches != nil {
-			valueStr := matches[1]
-			unit := matches[2]
-
-			value, err := strconv.ParseFloat(valueStr, 64)
+		if isBlockedTimeLine(line) {
+			duration, err := extractDuration(line, `Total Select Blocked Time:\s*([\d.]+)([a-zµ]+)`)
 			if err != nil {
-				continue
+				return nil, fmt.Errorf("error parsing blocked time: %w", err)
 			}
-
-			var seconds float64
-			switch unit {
-			case "s":
-				seconds = value
-			case "ms":
-				seconds = value / 1000
-			case "µs":
-				seconds = value / 1000000
-			case "ns":
-				seconds = value / 1000000000
-			default:
-				continue
-			}
-
-			blockedDuration := time.Duration(seconds * float64(time.Second))
-			currentGoroutine.BlockedTimes = append(currentGoroutine.BlockedTimes, blockedDuration)
-
+			currentGoroutine.BlockedTimes = []time.Duration{duration}
 			if currentGoroutine.Lifetime > 0 {
-				currentGoroutine.Efficiency = float64(currentGoroutine.Lifetime-blockedDuration) / float64(currentGoroutine.Lifetime)
+				currentGoroutine.Efficiency = float64(currentGoroutine.Lifetime-duration) / float64(currentGoroutine.Lifetime)
 			}
 			continue
 		}
@@ -183,9 +156,7 @@ func parseGoroutineStats(scanner *bufio.Scanner) ([]GoroutineStats, error) {
 	}
 
 	for _, g := range goroutineMap {
-		if g.Lifetime > 0 {
-			stats = append(stats, *g)
-		}
+		stats = append(stats, *g)
 	}
 
 	return stats, nil

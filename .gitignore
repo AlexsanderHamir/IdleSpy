@@ -1,4 +1,5 @@
 tasks.md
 .DS_Store
 *.txt
+*.json
 /example
