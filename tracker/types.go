@@ -12,6 +12,7 @@ const (
 	PrintAndSave Action = "print_and_save"
 	Save         Action = "save"
 	Print        Action = "print"
+	None         Action = "none"
 )
 
 // GoroutineManager manages statistics for multiple goroutines
@@ -20,7 +21,6 @@ type GoroutineManager struct {
 	Stats         map[GoroutineId]*GoroutineStats
 	mu            sync.RWMutex
 	Wg            sync.WaitGroup
-	StatsFileName string
 	FileType      string // text or json
 	Action        Action
 }

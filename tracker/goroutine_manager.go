@@ -84,6 +84,10 @@ func (gm *GoroutineManager) GetAllStats() map[GoroutineId]*GoroutineStats {
 func (gm *GoroutineManager) Done() error {
 	gm.Wg.Wait()
 
+	if gm.Action == None {
+		return nil
+	}
+
 	if gm.FileType == "text" {
 		gm.handleTextActions()
 	} else if gm.FileType == "json" {
