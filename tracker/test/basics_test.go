@@ -89,14 +89,16 @@ func TestTrackSelectCase(t *testing.T) {
 
 func TestConcurrentTracking(t *testing.T) {
 	gm := tracker.NewGoroutineManager()
-	var wg sync.WaitGroup
+
 	goroutineCount := 10
+	gm.StatsFileName = "concurrent_tracking"
+	gm.FileType = "json"
+	gm.PrintAndSave = true
+	gm.Wg.Add(goroutineCount)
 
 	// Launch multiple goroutines that track their own stats
 	for range goroutineCount {
-		wg.Add(1)
 		go func() {
-			defer wg.Done()
 			id := gm.TrackGoroutineStart()
 			defer gm.TrackGoroutineEnd(id)
 
@@ -112,7 +114,10 @@ func TestConcurrentTracking(t *testing.T) {
 		}()
 	}
 
-	wg.Wait()
+	err := gm.Done()
+	if err != nil {
+		t.Errorf("Error saving stats: %v", err)
+	}
 
 	// Verify all goroutines were tracked
 	allStats := gm.GetAllStats()
@@ -137,7 +142,6 @@ func TestConcurrentTracking(t *testing.T) {
 
 func TestGetGoroutineStats(t *testing.T) {
 	gm := tracker.NewGoroutineManager()
-
 	// Test getting stats for non-existent goroutine
 	stats := gm.GetGoroutineStats(999)
 	if stats != nil {

@@ -1,11 +1,11 @@
 ## IdleSpy: Visual Concurrency Profiler for Go
+
 [![Go Version](https://img.shields.io/badge/Go-1.24%2B-blue)](https://golang.org)
 [![Go Report Card](https://goreportcard.com/badge/github.com/AlexsanderHamir/IdleSpy)](https://goreportcard.com/report/github.com/AlexsanderHamir/IdleSpy)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ![Issues](https://img.shields.io/github/issues/AlexsanderHamir/IdleSpy)
 ![Last Commit](https://img.shields.io/github/last-commit/AlexsanderHamir/IdleSpy)
 ![Code Size](https://img.shields.io/github/languages/code-size/AlexsanderHamir/IdleSpy)
-
 
 IdleSpy is a Go library and CLI tool for analyzing goroutines in high-concurrency applications. It shows where time is spent inside select statements and how often each path is blocked, helping you quickly identify inefficiencies and improve concurrency performance.
 
@@ -69,7 +69,13 @@ import (
 )
 
 
-gm := tracker.NewGoroutineManager()
+	goroutineCount := 10
+
+	gm := tracker.NewGoroutineManager()
+	gm.StatsFileName = "concurrent_tracking"
+	gm.FileType = "json"
+	gm.PrintAndSave = true
+	gm.Wg.Add(goroutineCount)
 
 // Simple example of tracking a worker goroutine
 func processItems(gm *tracker.GoroutineManager,ctx context.Context, items <-chan string, results chan<- string) {
@@ -101,6 +107,14 @@ func processItems(gm *tracker.GoroutineManager,ctx context.Context, items <-chan
 		}
 	}
 }
+
+// Wait for all goroutines to finish so you can print the final results
+err := gm.Done()
+	if err != nil {
+	 t.Errorf("Error saving stats: %v", err)
+}
+
+
 ```
 
 ## CLI Usage
@@ -117,16 +131,14 @@ idlespy -file ./stats.txt -chart total-blocked-time
 
 > Note: Run `idlespy -help` for more.
 
-
 ### 📊 Understanding the Statistics
 
 The tracker will generate detailed runtime statistics and save them to a `stats.txt` file. Below is an example of the data format:
 
-
 #### 🧵 Goroutine 35
 
-* **Lifetime:** `19.88s`
-* **Total Select Blocked Time:** `2.36s`
+- **Lifetime:** `19.88s`
+- **Total Select Blocked Time:** `2.36s`
 
 **Select Case Statistics:**
 
@@ -134,7 +146,6 @@ The tracker will generate detailed runtime statistics and save them to a `stats.
 | ------------------ | ---- | ------------------ | ---------------- | --------- | --------- |
 | `slow_path_output` | 51   | 2.36s              | 46.34ms          | 88.35ms   | 93.23ms   |
 | `batch_timeout`    | 58   | 274.84µs           | 4.74µs           | 8.17µs    | 12.83µs   |
-
 
 ### Best Practices
 
