@@ -84,6 +84,9 @@ func printBarChart(caseStats []*sharedtypes.CaseJSON, visType sharedtypes.Visual
 	aggregatedStats := tracker.AggregateCaseStats(caseStats)
 	var aggregatedSlice []*sharedtypes.CaseJSON
 	for _, stat := range aggregatedStats {
+		if visType == sharedtypes.AverageTime {
+			stat.AvgBlockedTime = stat.AvgBlockedTime / int64(goroutineCount)
+		}
 		aggregatedSlice = append(aggregatedSlice, stat)
 	}
 	tracker.SortCaseStats(aggregatedSlice, visType)
@@ -91,7 +94,7 @@ func printBarChart(caseStats []*sharedtypes.CaseJSON, visType sharedtypes.Visual
 	maxValue := tracker.GetMaxValue(aggregatedSlice, visType)
 
 	barWidth := 40
-	fmt.Printf("\n%s Blocked Time Across %d Goroutines\n", visType, goroutineCount)
+	fmt.Printf("\n%s Across %d Goroutines\n", visType, goroutineCount)
 	fmt.Println(strings.Repeat("=", len(visType.String())+30))
 
 	for _, stat := range aggregatedSlice {
