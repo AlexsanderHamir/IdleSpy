@@ -42,7 +42,7 @@ func main() {
 		err = visualization.GenerateBarChart(sharedtypes.Percentile90)
 	case "sum-p99-blocked-time":
 		err = visualization.GenerateBarChart(sharedtypes.Percentile99)
-	case "sum-hits":
+	case "hits":
 		err = visualization.GenerateBarChart(sharedtypes.TotalHits)
 	default:
 		fmt.Printf("Error: unknown chart type '%s'\n", *chartType)

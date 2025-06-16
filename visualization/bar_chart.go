@@ -104,11 +104,19 @@ func printBarChart(caseStats []*sharedtypes.CaseJSON, visType sharedtypes.Visual
 			barLength = 1
 		}
 
-		valueStr := formatDuration(time.Duration(value))
+		var valueStr string
+		if visType != sharedtypes.TotalHits {
+			valueStr = formatDuration(time.Duration(value))
+		} else {
+			valueStr = fmt.Sprintf("%d", int(value))
+		}
+
 		fmt.Printf("%-20s %s %s\n",
 			stat.CaseName,
 			strings.Repeat("█", barLength),
 			valueStr)
+		continue
+
 	}
 }
 
