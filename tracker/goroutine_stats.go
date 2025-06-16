@@ -20,7 +20,7 @@ func (gs *GoroutineStats) GetGoroutineLifetime() time.Duration {
 }
 
 // GetTotalSelectTime returns the total time spent in select cases for a goroutine
-func (gs *GoroutineStats) GetTotalSelectTime() time.Duration {
+func (gs *GoroutineStats) GetTotalSelectBlockedTime() time.Duration {
 	var total time.Duration
 	for _, stats := range gs.SelectStats {
 		total += stats.BlockedCaseTime
@@ -58,7 +58,7 @@ func PrintAndSaveStatsText(stats map[GoroutineId]*GoroutineStats, title string) 
 	for goroutineID, stat := range stats {
 		fmt.Fprintf(writer, "\nGoroutine %d:\n", goroutineID)
 		fmt.Fprintf(writer, "  Lifetime: %v\n", stat.GetGoroutineLifetime())
-		fmt.Fprintf(writer, "  Total Select Blocked Time: %v\n", stat.GetTotalSelectTime())
+		fmt.Fprintf(writer, "  Total Select Blocked Time: %v\n", stat.GetTotalSelectBlockedTime())
 
 		fmt.Fprintln(writer, "  Select Case Statistics:")
 		for caseName, caseStats := range stat.GetSelectStats() {
@@ -91,7 +91,7 @@ func SaveStatsText(stats map[GoroutineId]*GoroutineStats, title string) {
 	for goroutineID, stat := range stats {
 		fmt.Fprintf(file, "\nGoroutine %d:\n", goroutineID)
 		fmt.Fprintf(file, "  Lifetime: %v\n", stat.GetGoroutineLifetime())
-		fmt.Fprintf(file, "  Total Select Blocked Time: %v\n", stat.GetTotalSelectTime())
+		fmt.Fprintf(file, "  Total Select Blocked Time: %v\n", stat.GetTotalSelectBlockedTime())
 
 		fmt.Fprintln(file, "  Select Case Statistics:")
 		for caseName, caseStats := range stat.GetSelectStats() {
@@ -141,7 +141,7 @@ func PrintAndSaveStatsJSON(stats map[GoroutineId]*GoroutineStats, title string) 
 	for goroutineID, stat := range stats {
 		goroutineJSON := GoroutineJSON{
 			Lifetime:        stat.GetGoroutineLifetime(),
-			TotalSelectTime: stat.GetTotalSelectTime(),
+			TotalSelectTime: stat.GetTotalSelectBlockedTime(),
 			SelectCaseStats: make(map[string]CaseJSON),
 		}
 
@@ -197,7 +197,7 @@ func SaveStatsJSON(stats map[GoroutineId]*GoroutineStats, title string) error {
 	for goroutineID, stat := range stats {
 		goroutineJSON := GoroutineJSON{
 			Lifetime:        stat.GetGoroutineLifetime(),
-			TotalSelectTime: stat.GetTotalSelectTime(),
+			TotalSelectTime: stat.GetTotalSelectBlockedTime(),
 			SelectCaseStats: make(map[string]CaseJSON),
 		}
 
@@ -244,7 +244,7 @@ func PrintStatsJSON(stats map[GoroutineId]*GoroutineStats, title string) {
 	for goroutineID, stat := range stats {
 		goroutineJSON := GoroutineJSON{
 			Lifetime:        stat.GetGoroutineLifetime(),
-			TotalSelectTime: stat.GetTotalSelectTime(),
+			TotalSelectTime: stat.GetTotalSelectBlockedTime(),
 			SelectCaseStats: make(map[string]CaseJSON),
 		}
 
@@ -283,7 +283,7 @@ func PrintStatsText(stats map[GoroutineId]*GoroutineStats, title string) {
 	for goroutineID, stat := range stats {
 		fmt.Fprintf(os.Stdout, "\nGoroutine %d:\n", goroutineID)
 		fmt.Fprintf(os.Stdout, "  Lifetime: %v\n", stat.GetGoroutineLifetime())
-		fmt.Fprintf(os.Stdout, "  Total Select Blocked Time: %v\n", stat.GetTotalSelectTime())
+		fmt.Fprintf(os.Stdout, "  Total Select Blocked Time: %v\n", stat.GetTotalSelectBlockedTime())
 
 		fmt.Fprintln(os.Stdout, "  Select Case Statistics:")
 		for caseName, caseStats := range stat.GetSelectStats() {

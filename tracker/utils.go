@@ -1,6 +1,7 @@
 package tracker
 
 import (
+	"os"
 	"runtime"
 	"sort"
 	"strconv"
@@ -161,4 +162,12 @@ func GetValueForCase(stat *sharedtypes.CaseJSON, visType sharedtypes.Visualizati
 	default:
 		return 0
 	}
+}
+
+func FileExists(path string) bool {
+	_, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return err == nil
 }

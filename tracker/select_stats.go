@@ -11,3 +11,8 @@ func (ss *SelectStats) GetCaseHits() int {
 func (ss *SelectStats) GetCaseTime() time.Duration {
 	return ss.BlockedCaseTime
 }
+
+// Get Average
+func (ss *SelectStats) GetAverage() time.Duration {
+	return ss.BlockedCaseTime / time.Duration(ss.CaseHits)
+}

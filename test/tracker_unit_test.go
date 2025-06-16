@@ -1,6 +1,7 @@
 package test
 
 import (
+	"os"
 	"testing"
 	"time"
 
@@ -22,9 +23,11 @@ func TestTrackGoroutineStartAndEnd(t *testing.T) {
 	if stats == nil {
 		t.Fatal("Stats not found for tracked goroutine")
 	}
+
 	if stats.StartTime.IsZero() {
 		t.Error("Start time was not set")
 	}
+
 	if !stats.EndTime.IsZero() {
 		t.Error("End time was set before TrackGoroutineEnd")
 	}
@@ -56,6 +59,7 @@ func TestTrackSelectCase(t *testing.T) {
 	if selectStats.GetCaseHits() != 1 {
 		t.Errorf("Expected 1 case hit, got %d", selectStats.GetCaseHits())
 	}
+
 	if selectStats.GetCaseTime() != duration {
 		t.Errorf("Expected case time %v, got %v", duration, selectStats.GetCaseTime())
 	}
@@ -71,9 +75,18 @@ func TestTrackSelectCase(t *testing.T) {
 }
 
 func TestConcurrentTracking(t *testing.T) {
+	defer func() {
+		os.Remove(".internal.json")
+		os.Remove(".internal.txt")
+	}()
+
+	latency1 := 50 * time.Millisecond
+	latency2 := 100 * time.Millisecond
+
 	gm := tracker.NewGoroutineManager()
 
 	goroutineCount := 10
+
 	gm.FileType = "json"
 	gm.Action = tracker.Save
 	gm.Wg.Add(goroutineCount)
@@ -83,8 +96,8 @@ func TestConcurrentTracking(t *testing.T) {
 			id := gm.TrackGoroutineStart()
 			defer gm.TrackGoroutineEnd(id)
 
-			gm.TrackSelectCase("case1", 50*time.Millisecond, id)
-			gm.TrackSelectCase("case2", 100*time.Millisecond, id)
+			gm.TrackSelectCase("case1", latency1, id)
+			gm.TrackSelectCase("case2", latency2, id)
 
 			stats := gm.GetGoroutineStats(id)
 			if stats == nil {
@@ -98,22 +111,17 @@ func TestConcurrentTracking(t *testing.T) {
 		t.Errorf("Error saving stats: %v", err)
 	}
 
+	if !tracker.FileExists(".internal.json") {
+		t.Error("File does not exist")
+	}
+
 	allStats := gm.GetAllStats()
 	if len(allStats) != goroutineCount {
 		t.Errorf("Expected %d goroutines, got %d", goroutineCount, len(allStats))
 	}
 
 	for _, stats := range allStats {
-		selectStats := stats.GetSelectStats()
-		if len(selectStats) != 2 {
-			t.Errorf("Expected 2 select cases, got %d", len(selectStats))
-		}
-
-		totalTime := stats.GetTotalSelectTime()
-		expectedTime := 150 * time.Millisecond
-		if totalTime != expectedTime {
-			t.Errorf("Expected total select time %v, got %v", expectedTime, totalTime)
-		}
+		CheckStatsAccuracy(t, stats, latency1, latency2)
 	}
 }
 

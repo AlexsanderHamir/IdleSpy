@@ -1,6 +1,5 @@
 package sharedtypes
 
-// VisualizationType represents the type of visualization to use
 type VisualizationType int
 
 const (
@@ -28,7 +27,6 @@ func (vt VisualizationType) String() string {
 	}
 }
 
-// CaseJSON represents statistics for a single select case in JSON format
 type CaseJSON struct {
 	CaseName         string `json:"case_name"`
 	Hits             int64  `json:"hits"`
