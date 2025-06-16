@@ -38,9 +38,9 @@ func main() {
 		err = visualization.GenerateBarChart(sharedtypes.TotalBlockedTime)
 	case "avg-blocked-time":
 		err = visualization.GenerateBarChart(sharedtypes.AverageTime)
-	case "sum-p90-blocked-time":
+	case "p90-blocked-time":
 		err = visualization.GenerateBarChart(sharedtypes.Percentile90)
-	case "sum-p99-blocked-time":
+	case "p99-blocked-time":
 		err = visualization.GenerateBarChart(sharedtypes.Percentile99)
 	case "hits":
 		err = visualization.GenerateBarChart(sharedtypes.TotalHits)
