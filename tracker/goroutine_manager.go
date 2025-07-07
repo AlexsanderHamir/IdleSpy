@@ -3,6 +3,7 @@ package tracker
 import (
 	"fmt"
 	"maps"
+	"sync"
 	"time"
 )
 
@@ -10,6 +11,8 @@ import (
 func NewGoroutineManager() *GoroutineManager {
 	return &GoroutineManager{
 		Stats: make(map[GoroutineId]*GoroutineStats),
+		mu:    &sync.RWMutex{},
+		Wg:    &sync.WaitGroup{},
 	}
 }
 
@@ -88,11 +91,12 @@ func (gm *GoroutineManager) Done() error {
 		return nil
 	}
 
-	if gm.FileType == "text" {
+	switch gm.FileType {
+	case "text":
 		gm.handleTextActions()
-	} else if gm.FileType == "json" {
+	case "json":
 		gm.handleJsonActions()
-	} else {
+	default:
 		return fmt.Errorf("invalid file type: %s", gm.FileType)
 	}
 

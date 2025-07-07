@@ -18,11 +18,11 @@ const (
 // GoroutineManager manages statistics for multiple goroutines
 type GoroutineId int
 type GoroutineManager struct {
-	Stats         map[GoroutineId]*GoroutineStats
-	mu            sync.RWMutex
-	Wg            sync.WaitGroup
-	FileType      string // text or json
-	Action        Action
+	Stats    map[GoroutineId]*GoroutineStats
+	mu       *sync.RWMutex
+	Wg       *sync.WaitGroup
+	FileType string // text or json
+	Action   Action
 }
 
 // GoroutineStats holds statistics for a single goroutine
