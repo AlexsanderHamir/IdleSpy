@@ -29,6 +29,8 @@ func (gm *GoroutineManager) TrackGoroutineStart() GoroutineId {
 			StartTime:   time.Now(),
 		}
 	}
+
+	gm.Wg.Add(1)
 	return id
 }
 
