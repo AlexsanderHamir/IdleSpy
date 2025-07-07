@@ -276,7 +276,6 @@ func PrintStatsJSON(stats map[GoroutineId]*GoroutineStats, title string) {
 
 // PrintStatsText prints a summary of goroutine performance statistics to stdout
 func PrintStatsText(stats map[GoroutineId]*GoroutineStats, title string) {
-	// Write title
 	fmt.Println("\n" + title)
 	fmt.Println(strings.Repeat("=", len(title)))
 
@@ -296,5 +295,52 @@ func PrintStatsText(stats map[GoroutineId]*GoroutineStats, title string) {
 				fmt.Fprintf(os.Stdout, "      99th Percentile Blocked Time: %v\n", caseStats.GetPercentile(99))
 			}
 		}
+	}
+}
+
+var buckets = []time.Duration{
+	0,
+	10 * time.Millisecond,
+	50 * time.Millisecond,
+	100 * time.Millisecond,
+	500 * time.Millisecond,
+	1 * time.Second,
+	5 * time.Second,
+	10 * time.Second,
+}
+
+func PrintBlockedTimeHistogram(stats map[GoroutineId]*GoroutineStats, title string) {
+	histogram := make(map[time.Duration]int)
+
+	for _, b := range buckets {
+		histogram[b] = 0
+	}
+
+	overflowCount := 0
+	for _, stat := range stats {
+		blocked := stat.GetTotalSelectBlockedTime()
+		placed := false
+		for _, b := range buckets {
+			if blocked <= b {
+				histogram[b]++
+				placed = true
+				break
+			}
+		}
+		if !placed {
+			overflowCount++
+		}
+	}
+
+	fmt.Printf("\n%s\n%s\n", title, strings.Repeat("=", len(title)))
+	for i, b := range buckets {
+		var lowerBound time.Duration
+		if i > 0 {
+			lowerBound = buckets[i-1]
+		}
+		fmt.Printf("[%v - %v]: %d goroutines\n", lowerBound, b, histogram[b])
+	}
+	if overflowCount > 0 {
+		fmt.Printf("[ > %v ]: %d goroutines\n", buckets[len(buckets)-1], overflowCount)
 	}
 }

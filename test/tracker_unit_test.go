@@ -123,6 +123,8 @@ func TestConcurrentTracking(t *testing.T) {
 	for _, stats := range allStats {
 		CheckStatsAccuracy(t, stats, latency1, latency2)
 	}
+
+	tracker.PrintBlockedTimeHistogram(allStats, "test")
 }
 
 func TestGetGoroutineStats(t *testing.T) {
