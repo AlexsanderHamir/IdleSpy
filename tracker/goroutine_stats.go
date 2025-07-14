@@ -344,3 +344,66 @@ func PrintBlockedTimeHistogram(stats map[GoroutineId]*GoroutineStats, title stri
 		fmt.Printf("[ > %v ]: %d goroutines\n", buckets[len(buckets)-1], overflowCount)
 	}
 }
+
+// WriteBlockedTimeHistogramDot writes the blocked time histogram DOT graph to a file named "<stageName>.dot"
+func WriteBlockedTimeHistogramDot(stats map[GoroutineId]*GoroutineStats, stageName string) error {
+	histogram := make(map[time.Duration]int)
+	for _, b := range buckets {
+		histogram[b] = 0
+	}
+	overflowCount := 0
+	for _, stat := range stats {
+		blocked := stat.GetTotalSelectBlockedTime()
+		placed := false
+		for _, b := range buckets {
+			if blocked <= b {
+				histogram[b]++
+				placed = true
+				break
+			}
+		}
+		if !placed {
+			overflowCount++
+		}
+	}
+
+	var bld strings.Builder
+
+	bld.WriteString("digraph BlockedHistogram {\n")
+	bld.WriteString("  label=\"" + stageName + " - Blocked Time Histogram\";\n")
+	bld.WriteString("  labelloc=top;\n")
+	bld.WriteString("  fontsize=14;\n")
+	bld.WriteString("  rankdir=LR;\n")
+	bld.WriteString("  node [shape=box, style=filled, fontname=\"Arial\", fontsize=10, fillcolor=lightgray];\n\n")
+
+	for i, b := range buckets {
+		var lowerBound time.Duration
+		if i > 0 {
+			lowerBound = buckets[i-1]
+		}
+		label := fmt.Sprintf("[%v - %v]\\n%d goroutines", lowerBound, b, histogram[b])
+		fmt.Fprintf(&bld, "  bucket_%d [label=\"%s\"];\n", i, label)
+	}
+
+	if overflowCount > 0 {
+		last := len(buckets)
+		label := fmt.Sprintf("> %v\\n%d goroutines", buckets[len(buckets)-1], overflowCount)
+		fmt.Fprintf(&bld, "  bucket_%d [label=\"%s\"];\n", last, label)
+	}
+
+	for i := 0; i < len(buckets)-1; i++ {
+		fmt.Fprintf(&bld, "  bucket_%d -> bucket_%d [style=dashed, arrowsize=0.7];\n", i, i+1)
+	}
+	if overflowCount > 0 {
+		fmt.Fprintf(&bld, "  bucket_%d -> bucket_%d [style=dashed, arrowsize=0.7];\n", len(buckets)-2, len(buckets))
+	}
+
+	bld.WriteString("}\n")
+
+	// Clean stageName for a safe filename (optional)
+	fileName := stageName + ".dot"
+	// Optional: replace spaces with underscores, or sanitize further if needed
+	fileName = strings.ReplaceAll(fileName, " ", "_")
+
+	return os.WriteFile(fileName, []byte(bld.String()), 0644)
+}
